@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Marketplace Admin</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://jspm.dev/react@18.2.0",
+          "react-dom/client": "https://jspm.dev/react-dom@18.2.0/client",
+          "react/jsx-runtime": "https://jspm.dev/react@18.2.0/jsx-runtime",
+          "@google/genai": "https://esm.sh/@google/genai"
+        }
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#4f46e5',
+              hover: '#4338ca',
+              light: '#e0e7ff',
+            },
+            secondary: '#10b981',
+            background: '#f8fafc',
+            surface: '#ffffff',
+            text: {
+              primary: '#1f2937',
+              secondary: '#6b7280',
+            }
+          }
+        }
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-background text-text-primary">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

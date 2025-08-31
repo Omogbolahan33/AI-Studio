@@ -1,0 +1,5 @@
+{
+  "name": "Social Marketplace",
+  "description": "An admin dashboard for managing transactions, disputes, and viewing analytics for a social marketplace. It features AI-powered dispute resolution analysis using the Gemini API.",
+  "requestFramePermissions": []
+}
