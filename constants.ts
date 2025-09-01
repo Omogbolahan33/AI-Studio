@@ -1,9 +1,12 @@
 
-import type { Transaction, Dispute, Post, Chat, User, Category } from './types';
+import type { Transaction, Dispute, Post, Chat, User, Category, Notification, ActivityLog } from './types';
 
 export const mockUsers: User[] = [
-    { id: 'user-01', username: 'admin', password: 'password', role: 'Admin', name: 'Admin User' },
-    { id: 'user-02', username: 'alice', password: 'password', role: 'Member', name: 'Alice' },
+    { id: 'user-01', username: 'admin', password: 'password', role: 'Admin', name: 'Admin User', avatarUrl: 'https://i.pravatar.cc/150?u=admin', email: 'admin@market.com', address: '123 Admin Ave', city: 'Adminville', zipCode: '90210', followingIds: [], blockedUserIds: [], isActive: true, banExpiresAt: null, banReason: null, banStartDate: null },
+    { id: 'user-02', username: 'alice', password: 'password', role: 'Member', name: 'Alice', avatarUrl: 'https://i.pravatar.cc/150?u=alice', email: 'alice@example.com', address: '456 Member Ln', city: 'Userburg', zipCode: '12345', followingIds: ['user-03', 'user-04'], blockedUserIds: [], isActive: true, banExpiresAt: null, banReason: null, banStartDate: null },
+    { id: 'user-03', username: 'anonymouspanda', password: 'password', role: 'Member', name: 'AnonymousPanda', avatarUrl: 'https://i.pravatar.cc/150?u=panda', email: 'panda@example.com', address: '789 Bamboo Rd', city: 'Forest', zipCode: '54321', followingIds: [], blockedUserIds: [], isActive: true, banExpiresAt: null, banReason: null, banStartDate: null },
+    { id: 'user-04', username: 'anonymousfox', password: 'password', role: 'Member', name: 'AnonymousFox', avatarUrl: 'https://i.pravatar.cc/150?u=fox', email: 'fox@example.com', address: '101 Den Way', city: 'Meadow', zipCode: '67890', followingIds: [], blockedUserIds: [], isActive: false, banExpiresAt: null, banReason: null, banStartDate: null },
+    { id: 'user-05', username: 'anonymoustiger', password: 'password', role: 'Member', name: 'AnonymousTiger', avatarUrl: 'https://i.pravatar.cc/150?u=tiger', email: 'tiger@example.com', address: '210 Jungle Blvd', city: 'Savannah', zipCode: '11223', followingIds: [], blockedUserIds: [], isActive: true, banExpiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), banReason: 'Spamming the forum with irrelevant content.', banStartDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
 ];
 
 export const mockCategories: Category[] = [
@@ -16,11 +19,11 @@ export const mockCategories: Category[] = [
 ];
 
 export const mockTransactions: Transaction[] = [
-  { id: 'TXN74839', buyer: 'Alice', seller: 'Bob', item: 'Vintage Camera', amount: 250, status: 'Completed', date: '2023-10-26' },
-  { id: 'TXN93842', buyer: 'Charlie', seller: 'David', item: 'Handmade Scarf', amount: 45, status: 'In Escrow', date: '2023-10-25' },
-  { id: 'TXN10293', buyer: 'Eve', seller: 'Frank', item: 'Signed Poster', amount: 120, status: 'Pending', date: '2023-10-25' },
-  { id: 'TXN58391', buyer: 'Grace', seller: 'Heidi', item: 'Antique Vase', amount: 600, status: 'Completed', date: '2023-10-24' },
-  { id: 'TXN69382', buyer: 'Alice', seller: 'Judy', item: 'Gaming Console', amount: 350, status: 'Failed', date: '2023-10-23' },
+  { id: 'TXN74839', postId: 'POST001', buyer: 'Alice', seller: 'AnonymousPanda', item: 'Vintage Camera', amount: 250, status: 'Completed', date: '2023-10-26' },
+  { id: 'TXN93842', postId: 'POST003', buyer: 'Charlie', seller: 'AnonymousTiger', item: 'Handmade Scarf', amount: 45, status: 'In Escrow', date: '2023-10-25' },
+  { id: 'TXN10293', postId: 'POST003', buyer: 'Eve', seller: 'AnonymousTiger', item: 'Signed Poster', amount: 120, status: 'Pending', date: '2023-10-25' },
+  { id: 'TXN58391', postId: 'POST001', buyer: 'Grace', seller: 'AnonymousPanda', item: 'Antique Vase', amount: 600, status: 'Completed', date: '2023-10-24' },
+  { id: 'TXN69382', postId: 'POST001', buyer: 'Alice', seller: 'AnonymousPanda', item: 'Gaming Console', amount: 350, status: 'Failed', date: '2023-10-23' },
 ];
 
 export const mockDisputes: Dispute[] = [
@@ -72,14 +75,14 @@ export const mockPosts: Post[] = [
         title: 'For Sale: Barely Used Electric Guitar',
         content: 'Selling my Fender Stratocaster, sunburst color. It\'s in excellent condition, barely played. Comes with a soft case and a strap. Perfect for beginners or intermediate players. DM for more pictures!',
         comments: [
-            { id: 'C1', author: 'AnonymousLion', content: 'What year is it?', timestamp: '1 hour ago' },
+            { id: 'C1', author: 'AnonymousFox', content: 'What year is it?', timestamp: '1 hour ago' },
             { id: 'C2', author: 'AnonymousPanda', content: 'It\'s a 2021 model.', timestamp: '1 hour ago' }
         ],
         isAdvert: true,
         price: 450,
         categoryId: 'cat-sale-01',
-        likes: 15,
-        dislikes: 1,
+        likedBy: ['user-02', 'user-04'],
+        dislikedBy: ['user-05'],
     },
     {
         id: 'POST002',
@@ -88,13 +91,13 @@ export const mockPosts: Post[] = [
         title: 'Tips for keeping indoor plants alive?',
         content: 'I seem to have a black thumb. Every plant I bring home dies within a month. I\'ve tried succulents, snake plants, you name it. What are your best tips for a beginner?',
         comments: [
-            { id: 'C3', author: 'AnonymousOwl', content: 'Don\'t overwater! It\'s the #1 killer. Check the soil first.', timestamp: '4 hours ago' },
-            { id: 'C4', author: 'AnonymousBear', content: 'Make sure they get enough light. A south-facing window is usually best.', timestamp: '3 hours ago' }
+            { id: 'C3', author: 'AnonymousTiger', content: 'Don\'t overwater! It\'s the #1 killer. Check the soil first.', timestamp: '4 hours ago' },
+            { id: 'C4', author: 'Alice', content: 'Make sure they get enough light. A south-facing window is usually best.', timestamp: '3 hours ago' }
         ],
         isAdvert: false,
         categoryId: 'cat-03',
-        likes: 22,
-        dislikes: 0,
+        likedBy: ['user-02', 'user-03', 'user-05'],
+        dislikedBy: [],
     },
     {
         id: 'POST003',
@@ -106,8 +109,8 @@ export const mockPosts: Post[] = [
         isAdvert: true,
         price: 80,
         categoryId: 'cat-sale-02',
-        likes: 8,
-        dislikes: 0,
+        likedBy: ['user-02'],
+        dislikedBy: [],
     },
     {
         id: 'POST004',
@@ -118,8 +121,8 @@ export const mockPosts: Post[] = [
         comments: [],
         isAdvert: false,
         categoryId: 'cat-01',
-        likes: 50,
-        dislikes: 0,
+        likedBy: ['user-02', 'user-03', 'user-04', 'user-05'],
+        dislikedBy: [],
     }
 ];
 
@@ -150,5 +153,26 @@ export const mockChats: Chat[] = [
     ],
     lastMessage: 'Yeah, that works for me!',
     lastMessageTimestamp: 'Yesterday',
+  },
+  {
+    id: 'CHAT003',
+    buyer: 'Alice',
+    seller: 'Admin User',
+    messages: [],
+    lastMessage: 'Chat started.',
+    lastMessageTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }
+];
+
+export const mockNotifications: Notification[] = [
+    { id: 'n1', type: 'comment', content: 'AnonymousPanda commented on your post "Tips for keeping indoor plants alive?"', link: '#', timestamp: '2h ago', read: false },
+    { id: 'n2', type: 'like', content: 'AnonymousFox liked your post "For Sale: Barely Used Electric Guitar"', link: '#', timestamp: '5h ago', read: false },
+    { id: 'n3', type: 'system', content: 'Your account has been successfully verified.', link: '#', timestamp: '1d ago', read: true },
+    { id: 'n4', type: 'follow', content: 'AnonymousTiger started following you.', link: '#', timestamp: '2d ago', read: true },
+];
+
+export const mockActivityLog: ActivityLog[] = [
+    { id: 'act1', userId: 'user-02', action: 'Commented on Post', details: '"Tips for keeping indoor plants alive?"', timestamp: '2023-10-28T10:00:00Z' },
+    { id: 'act2', userId: 'user-02', action: 'Liked Post', details: '"For Sale: Barely Used Electric Guitar"', timestamp: '2023-10-28T09:30:00Z' },
+    { id: 'act3', userId: 'user-02', action: 'Created Post', details: '"Looking for vintage sci-fi novels"', timestamp: '2023-10-27T15:00:00Z' },
 ];

@@ -8,25 +8,37 @@ import { CreatePostModal } from './CreatePostModal';
 interface ForumPageProps {
   posts: Post[];
   categories: Category[];
+  users: User[];
   currentUser: User;
   onInitiatePurchase: (post: Post) => void;
   onStartChat: (post: Post) => void;
-  onCreatePost: (postData: { title: string; content: string; isAdvert: boolean; price?: number, categoryId: string }) => void;
+  onCreatePost: (postData: { title: string; content: string; isAdvert: boolean; price?: number, categoryId: string, mediaUrl?: string, mediaType?: 'image' | 'video' }) => void;
+  onEditPost: (postId: string, postData: { title: string; content: string; isAdvert: boolean; price?: number, categoryId: string, mediaUrl?: string, mediaType?: 'image' | 'video' }) => void;
+  onDeletePost: (postId: string) => void;
   onLike: (postId: string) => void;
   onDislike: (postId: string) => void;
+  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }) => void;
+  onEditComment: (postId: string, commentId: string, newContent: string) => void;
+  onDeleteComment: (postId: string, commentId: string) => void;
+  onViewProfile: (user: User) => void;
 }
 
 const TopPostsSection: React.FC<{
   title: string;
   posts: Post[];
   categories: Category[];
+  users: User[];
+  currentUser: User;
   onSelectPost: (post: Post) => void;
-}> = ({ title, posts, categories, onSelectPost }) => {
+  onViewProfile: (user: User) => void;
+  onLike: (postId: string) => void;
+  onDislike: (postId: string) => void;
+}> = ({ title, posts, categories, users, currentUser, onSelectPost, onViewProfile, onLike, onDislike }) => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const getCategoryName = (categoryId: string) => categories.find(c => c.id === categoryId)?.name || 'Unknown';
 
-  const engagementScore = (post: Post) => post.comments.length + post.likes;
+  const engagementScore = (post: Post) => post.comments.length + post.likedBy.length;
 
   const filteredAndSortedPosts = useMemo(() => {
     return posts
@@ -62,7 +74,12 @@ const TopPostsSection: React.FC<{
               key={post.id} 
               post={post}
               categoryName={getCategoryName(post.categoryId)}
-              onSelect={() => onSelectPost(post)} 
+              onSelect={() => onSelectPost(post)}
+              users={users}
+              currentUser={currentUser}
+              onViewProfile={onViewProfile}
+              onLike={onLike}
+              onDislike={onDislike}
             />
           ))
         ) : (
@@ -74,28 +91,54 @@ const TopPostsSection: React.FC<{
 };
 
 
-export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onLike, onDislike }) => {
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile }) => {
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null);
+  
+  const selectedPost = useMemo(() => posts.find(p => p.id === selectedPostId), [selectedPostId, posts]);
 
   const handleSelectPost = (post: Post) => {
-    setSelectedPost(post);
+    setSelectedPostId(post.id);
   };
 
   const handleBackToList = () => {
-    setSelectedPost(null);
+    setSelectedPostId(null);
   };
+
+  const handleOpenEditModal = (post: Post) => {
+    setPostToEdit(post);
+    setIsCreateModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setPostToEdit(null);
+  };
+
+  const isBanned = useMemo(() => {
+    if (!currentUser.banExpiresAt) return false;
+    return new Date(currentUser.banExpiresAt) > new Date();
+  }, [currentUser.banExpiresAt]);
   
   if (selectedPost) {
     return (
       <PostDetailView 
+        key={selectedPost.id}
         post={selectedPost}
         currentUser={currentUser}
+        users={users}
         onBack={handleBackToList}
         onInitiatePurchase={onInitiatePurchase}
         onStartChat={onStartChat}
+        onEditPost={handleOpenEditModal}
+        onDeletePost={onDeletePost}
         onLike={onLike}
         onDislike={onDislike}
+        onAddComment={onAddComment}
+        onEditComment={onEditComment}
+        onDeleteComment={onDeleteComment}
+        onViewProfile={onViewProfile}
       />
     );
   }
@@ -107,11 +150,13 @@ export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, current
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-text-primary">Community Forum</h1>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+          disabled={isBanned}
+          title={isBanned ? `You are banned from posting until ${new Date(currentUser.banExpiresAt!).toLocaleDateString()}` : 'Create a new post'}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors w-full sm:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           Create New Post
         </button>
@@ -122,23 +167,38 @@ export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, current
             title="Top 10 Engaged Discussions"
             posts={discussionPosts}
             categories={discussionCategories}
+            users={users}
+            currentUser={currentUser}
             onSelectPost={handleSelectPost}
+            onViewProfile={onViewProfile}
+            onLike={onLike}
+            onDislike={onDislike}
         />
         <TopPostsSection 
             title="Top 10 Engaged Adverts"
             posts={advertPosts}
             categories={advertCategories}
+            users={users}
+            currentUser={currentUser}
             onSelectPost={handleSelectPost}
+            onViewProfile={onViewProfile}
+            onLike={onLike}
+            onDislike={onDislike}
         />
       </div>
 
       {isCreateModalOpen && (
         <CreatePostModal
           categories={categories}
-          onClose={() => setIsCreateModalOpen(false)}
+          existingPost={postToEdit}
+          onClose={handleCloseModal}
           onSubmit={(postData) => {
-            onCreatePost(postData);
-            setIsCreateModalOpen(false);
+            if(postToEdit) {
+                onEditPost(postToEdit.id, postData);
+            } else {
+                onCreatePost(postData);
+            }
+            handleCloseModal();
           }}
         />
       )}

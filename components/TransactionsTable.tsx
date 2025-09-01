@@ -4,6 +4,7 @@ import type { Transaction } from '../types';
 
 interface TransactionsTableProps {
   transactions: Transaction[];
+  onSelectTransaction: (transaction: Transaction) => void;
 }
 
 const statusColorMap: Record<Transaction['status'], string> = {
@@ -13,7 +14,7 @@ const statusColorMap: Record<Transaction['status'], string> = {
   Failed: 'bg-red-100 text-red-800',
 };
 
-export const TransactionsTable: React.FC<TransactionsTableProps> = ({ transactions }) => {
+export const TransactionsTable: React.FC<TransactionsTableProps> = ({ transactions, onSelectTransaction }) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left text-gray-500">
@@ -27,7 +28,11 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ transactio
         </thead>
         <tbody>
           {transactions.map((transaction) => (
-            <tr key={transaction.id} className="bg-white border-b hover:bg-gray-50">
+            <tr 
+              key={transaction.id} 
+              className="bg-white border-b hover:bg-gray-50 cursor-pointer"
+              onClick={() => onSelectTransaction(transaction)}
+            >
               <th scope="row" className="px-4 py-4 font-medium text-gray-900 whitespace-nowrap">
                 {transaction.id}
               </th>
