@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 import type { Post, User } from '../types';
 import { HandThumbUpIcon, HandThumbDownIcon, UserCircleIcon, PencilIcon, TrashIcon, ArrowUpTrayIcon, PinIcon, FlagIcon, ShieldCheckIcon } from '../types';
@@ -52,9 +50,10 @@ interface PostDetailViewProps {
   onFlagComment: (postId: string, commentId: string) => void;
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
+  isSold?: boolean;
 }
 
-export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUser, users, onBack, onInitiatePurchase, onStartChat, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag }) => {
+export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUser, users, onBack, onInitiatePurchase, onStartChat, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, isSold }) => {
   const isAuthor = currentUser.name === post.author;
   const author = users.find(u => u.name === post.author);
   const hasLiked = post.likedBy.includes(currentUser.id);
@@ -178,15 +177,23 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
                 <div className="prose dark:prose-invert max-w-none text-text-primary dark:text-dark-text-primary" dangerouslySetInnerHTML={{ __html: post.content }} />
                 
                 {post.isAdvert && (
-                     <div className="mt-8 p-6 bg-primary-light dark:bg-indigo-900/50 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                     <div className="relative mt-8 p-6 bg-primary-light dark:bg-indigo-900/50 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                        {isSold && (
+                            <>
+                                <div className="absolute inset-0 bg-gray-500 bg-opacity-40 rounded-lg z-10"></div>
+                                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                    <span className="text-6xl font-extrabold text-white transform -rotate-12 border-4 border-white p-4 select-none" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>SOLD</span>
+                                </div>
+                            </>
+                        )}
                         <div>
                             <p className="text-sm text-text-secondary dark:text-dark-text-secondary">Price</p>
                             <p className="text-4xl font-extrabold text-primary dark:text-indigo-300">₦{post.price?.toLocaleString()}</p>
                         </div>
                          {!isAuthor && (
                             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                                <button onClick={() => onStartChat(post)} className="px-6 py-3 bg-secondary text-white font-semibold rounded-lg hover:opacity-90 transition">Message Seller</button>
-                                <button onClick={() => onInitiatePurchase(post)} className="px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition">Buy Now</button>
+                                <button onClick={() => onStartChat(post)} disabled={isSold} className="px-6 py-3 bg-secondary text-white font-semibold rounded-lg hover:opacity-90 transition disabled:bg-gray-400 disabled:cursor-not-allowed">Message Seller</button>
+                                <button onClick={() => onInitiatePurchase(post)} disabled={isSold} className="px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition disabled:bg-gray-400 disabled:cursor-not-allowed">Buy Now</button>
                             </div>
                          )}
                     </div>

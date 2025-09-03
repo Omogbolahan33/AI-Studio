@@ -130,9 +130,11 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                         {userActivity.map(item => {
                             if ('title' in item) { // It's a Post
                                 const post = item as Post;
+                                const isSold = allTransactions.some(t => t.postId === post.id && t.status === 'Completed');
                                 return <PostListItem 
                                     key={`post-${post.id}`} 
                                     post={post} 
+                                    isSold={isSold}
                                     users={users} 
                                     currentUser={currentUser} 
                                     categoryName="" 

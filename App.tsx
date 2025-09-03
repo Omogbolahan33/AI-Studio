@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -268,6 +269,7 @@ const App: React.FC = () => {
         }
         setLoggedInUser(user);
         setLoginError('');
+        setToast({ message: `Welcome ${user.name}!`, type: 'success' });
     } else {
         setLoginError('Invalid username or password.');
     }
@@ -311,6 +313,7 @@ const App: React.FC = () => {
     };
     setUsers(prev => [...prev, newUser]);
     setLoggedInUser(newUser);
+    setToast({ message: `Welcome ${newUser.name}!`, type: 'success' });
     return { success: true, message: 'Account created successfully!' };
   };
 
@@ -1616,6 +1619,7 @@ const App: React.FC = () => {
       return <UserProfilePage 
         user={viewingProfileOfUser} 
         allPosts={posts} 
+        transactions={transactions}
         users={users} 
         currentUser={loggedInUser}
         onClose={() => setViewingProfileOfUser(null)}
@@ -1689,7 +1693,7 @@ const App: React.FC = () => {
       case 'Settings':
         return <SettingsPage users={users} onViewProfile={handleViewProfile} />;
       case 'Forum':
-        return <div className="p-4 sm:p-6"><ForumPage posts={posts.filter(p => !loggedInUser.blockedUserIds.includes(users.find(u => u.name === p.author)?.id || ''))} categories={categories} users={users} currentUser={loggedInUser} onInitiatePurchase={handleInitiatePurchase} onStartChat={(post) => handleStartChat({ post })} onCreatePost={handleCreatePost} onEditPost={handleEditPost} onDeletePost={handleDeletePost} onLike={handleLikePost} onDislike={handleDislikePost} onAddComment={handleAddComment} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onTogglePinPost={handleTogglePinPost} selectedPostId={selectedPostId} onSelectPost={(post) => setSelectedPostId(post.id)} onClearSelectedPost={() => setSelectedPostId(null)} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} /></div>;
+        return <div className="p-4 sm:p-6"><ForumPage transactions={transactions} posts={posts.filter(p => !loggedInUser.blockedUserIds.includes(users.find(u => u.name === p.author)?.id || ''))} categories={categories} users={users} currentUser={loggedInUser} onInitiatePurchase={handleInitiatePurchase} onStartChat={(post) => handleStartChat({ post })} onCreatePost={handleCreatePost} onEditPost={handleEditPost} onDeletePost={handleDeletePost} onLike={handleLikePost} onDislike={handleDislikePost} onAddComment={handleAddComment} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onTogglePinPost={handleTogglePinPost} selectedPostId={selectedPostId} onSelectPost={(post) => setSelectedPostId(post.id)} onClearSelectedPost={() => setSelectedPostId(null)} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} /></div>;
       case 'My Chats':
         const userChats = (loggedInUser.role === 'Admin' || loggedInUser.role === 'Super Admin')
             ? chats.filter(c => !c.transactionId && (c.buyer === loggedInUser.name || c.seller === loggedInUser.name)) 

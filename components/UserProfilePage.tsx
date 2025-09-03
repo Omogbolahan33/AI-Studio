@@ -1,9 +1,5 @@
-
-
-
-
 import React, { useState, useMemo } from 'react';
-import type { User, Post, Review, UserRole } from '../types';
+import type { User, Post, Review, UserRole, Transaction } from '../types';
 import { UserCircleIcon, ChatBubbleOvalLeftEllipsisIcon, UserPlusIcon, NoSymbolIcon, StopCircleIcon, CheckCircleIcon, StarIcon, HandThumbUpIcon, ChatBubbleBottomCenterTextIcon, UserMinusIcon, ArrowUpIcon, ArrowDownIcon } from '../types';
 import { PostListItem } from './PostListItem';
 import { CommentItem } from './CommentItem';
@@ -17,6 +13,7 @@ import { ReviewsList } from './ReviewsList';
 interface UserProfilePageProps {
   user: User;
   allPosts: Post[];
+  transactions: Transaction[];
   users: User[];
   currentUser: User;
   onClose: () => void;
@@ -242,7 +239,7 @@ const ProfileTabs: React.FC<{ activeTab: ProfileTab; onTabChange: (tab: ProfileT
 );
 
 
-export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onEditComment, onDeleteComment, onSetUserRole }) => {
+export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, transactions, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onEditComment, onDeleteComment, onSetUserRole }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('Topics');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
@@ -283,7 +280,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts
           case 'Adverts':
               return userAdverts.length > 0 ? (
                   <div className="space-y-4">
-                      {userAdverts.map(post => <PostListItem key={post.id} post={post} users={users} currentUser={currentUser} categoryName="" onSelect={() => onSelectPost(post)} onViewProfile={onViewProfile} onLike={onLike} onDislike={onDislike} onTogglePinPost={onTogglePinPost} onFlagPost={onFlagPost} />)}
+                      {userAdverts.map(post => {
+                          const isSold = transactions.some(t => t.postId === post.id && t.status === 'Completed');
+                          return <PostListItem key={post.id} post={post} isSold={isSold} users={users} currentUser={currentUser} categoryName="" onSelect={() => onSelectPost(post)} onViewProfile={onViewProfile} onLike={onLike} onDislike={onDislike} onTogglePinPost={onTogglePinPost} onFlagPost={onFlagPost} />
+                      })}
                   </div>
               ) : <p className="text-center text-text-secondary py-8">This user hasn't posted any adverts yet.</p>;
           case 'Reviews':

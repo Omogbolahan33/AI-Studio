@@ -15,6 +15,7 @@ interface PostListItemProps {
   onDislike: (postId: string) => void;
   onTogglePinPost: (postId: string) => void;
   onFlagPost: (postId: string) => void;
+  isSold?: boolean;
 }
 
 const ActionButton: React.FC<{
@@ -64,7 +65,7 @@ const timeAgo = (isoDate: string): string => {
     return "Just now";
 };
 
-export const PostListItem: React.FC<PostListItemProps> = ({ post, categoryName, users, currentUser, onSelect, onViewProfile, onLike, onDislike, onTogglePinPost, onFlagPost }) => {
+export const PostListItem: React.FC<PostListItemProps> = ({ post, categoryName, users, currentUser, onSelect, onViewProfile, onLike, onDislike, onTogglePinPost, onFlagPost, isSold }) => {
   const author = users.find(u => u.name === post.author);
   const isAuthor = currentUser.name === post.author;
   const hasLiked = post.likedBy.includes(currentUser.id);
@@ -129,8 +130,13 @@ export const PostListItem: React.FC<PostListItemProps> = ({ post, categoryName, 
 
   return (
     <div 
-        className="bg-surface dark:bg-dark-surface rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden flex flex-col"
+        className={`bg-surface dark:bg-dark-surface rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden flex flex-col relative ${isSold ? 'opacity-70' : ''}`}
     >
+        {isSold && (
+            <div className="absolute top-4 right-[-35px] bg-red-600 text-white text-sm font-bold px-10 py-1 transform rotate-45 z-10 select-none">
+                SOLD
+            </div>
+        )}
         <div className="p-4">
             <div className="flex items-center mb-3">
             <button onClick={handleAuthorClick} className="flex items-center text-left rounded-full focus:outline-none focus:ring-2 focus:ring-primary">

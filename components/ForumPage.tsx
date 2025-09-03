@@ -1,7 +1,5 @@
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Post, Category, User, PostCondition } from '../types';
+import type { Post, Category, User, PostCondition, Transaction } from '../types';
 import { PostListItem } from './PostListItem';
 import { PostDetailView } from './PostDetailView';
 import { CreatePostModal } from './CreatePostModal';
@@ -9,6 +7,7 @@ import { PlusIcon, FireIcon, TrophyIcon, FilterIcon } from '../types';
 
 interface ForumPageProps {
   posts: Post[];
+  transactions: Transaction[];
   categories: Category[];
   users: User[];
   currentUser: User;
@@ -29,12 +28,11 @@ interface ForumPageProps {
   onClearSelectedPost: () => void;
   onFlagPost: (postId: string) => void;
   onFlagComment: (postId: string, commentId: string) => void;
-  // FIX: Added missing props to resolve flags, which are passed from App.tsx.
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
 }
 
-export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, selectedPostId, onSelectPost, onClearSelectedPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag }) => {
+export const ForumPage: React.FC<ForumPageProps> = ({ posts, transactions, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, selectedPostId, onSelectPost, onClearSelectedPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
   const [showFab, setShowFab] = useState(false);
@@ -148,10 +146,12 @@ export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, users, 
   }, [currentUser.banExpiresAt]);
   
   if (selectedPost) {
+    const isSold = transactions.some(t => t.postId === selectedPost.id && t.status === 'Completed');
     return (
       <PostDetailView 
         key={selectedPost.id}
         post={selectedPost}
+        isSold={isSold}
         currentUser={currentUser}
         users={users}
         onBack={onClearSelectedPost}
@@ -298,21 +298,25 @@ export const ForumPage: React.FC<ForumPageProps> = ({ posts, categories, users, 
       {/* Posts List */}
       <div className="space-y-4">
         {displayedPosts.length > 0 ? (
-          displayedPosts.map(post => (
-            <PostListItem
-              key={post.id}
-              post={post}
-              categoryName={getCategoryName(post.categoryId)}
-              onSelect={() => onSelectPost(post)}
-              users={users}
-              currentUser={currentUser}
-              onViewProfile={onViewProfile}
-              onLike={onLike}
-              onDislike={onDislike}
-              onTogglePinPost={onTogglePinPost}
-              onFlagPost={onFlagPost}
-            />
-          ))
+          displayedPosts.map(post => {
+            const isSold = transactions.some(t => t.postId === post.id && t.status === 'Completed');
+            return (
+              <PostListItem
+                key={post.id}
+                post={post}
+                isSold={isSold}
+                categoryName={getCategoryName(post.categoryId)}
+                onSelect={() => onSelectPost(post)}
+                users={users}
+                currentUser={currentUser}
+                onViewProfile={onViewProfile}
+                onLike={onLike}
+                onDislike={onDislike}
+                onTogglePinPost={onTogglePinPost}
+                onFlagPost={onFlagPost}
+              />
+            );
+          })
         ) : (
           <p className="text-center text-text-secondary py-16">
             No {viewMode} found. Try creating one or clearing your filters!
