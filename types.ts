@@ -53,6 +53,12 @@ export interface AdminAction {
   originalStatus?: Transaction['status'];
 }
 
+export interface FileAttachment {
+  name: string;
+  url: string; // data URL for this prototype
+  type: 'image' | 'video' | 'pdf' | 'other';
+}
+
 export interface Transaction {
   id: string;
   postId?: string;
@@ -63,6 +69,7 @@ export interface Transaction {
   status: 'Pending' | 'Completed' | 'In Escrow' | 'Shipped' | 'Delivered' | 'Disputed' | 'Cancelled';
   date: string;
   trackingNumber?: string;
+  shippingProof?: FileAttachment;
   inspectionPeriodEnds?: string;
   shippedAt?: string;
   deliveredAt?: string;
@@ -73,6 +80,13 @@ export interface Transaction {
   adminActions?: AdminAction[];
 }
 
+export interface DisputeMessage {
+  sender: string;
+  message?: string;
+  timestamp: string;
+  attachment?: FileAttachment;
+}
+
 export interface Dispute {
   id: string;
   transactionId: string;
@@ -81,7 +95,7 @@ export interface Dispute {
   reason: string;
   status: 'Open' | 'Resolved' | 'Escalated';
   openedDate: string;
-  chatHistory: { sender: string; message: string; timestamp: string }[];
+  chatHistory: DisputeMessage[];
   resolvedByAdminId?: string;
 }
 
@@ -145,6 +159,7 @@ export interface Message {
     audioUrl: string; // In a real app, this would be a URL to a storage bucket
     duration: number; // in seconds
   };
+  attachment?: FileAttachment;
   replyTo?: {
     id: string;
     sender: string;
@@ -620,5 +635,11 @@ export const GoogleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 export const FacebookIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", ...props },
       React.createElement('path', { fill: "#1877F2", d: "M22,12c0-5.523-4.477-10-10-10S2,6.477,2,12c0,4.99,3.657,9.128,8.438,9.878V15.89H8.207v-3.774h2.231v-2.82c0-2.204,1.31-3.41,3.28-3.41c0.938,0,1.95,0.17,1.95,0.17v3.23h-1.63c-1.09,0-1.42,0.67-1.42,1.35v1.48h3.58l-0.56,3.774h-3.02V21.878C18.343,21.128,22,16.99,22,12z" })
+    )
+);
+
+export const DocumentIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
+      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
     )
 );

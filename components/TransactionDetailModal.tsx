@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Transaction, User, Post, AdminAction } from '../types';
-import { UserCircleIcon, CheckCircleIcon, ShieldExclamationIcon, ArrowUturnLeftIcon } from '../types';
+import type { Transaction, User, Post, AdminAction, FileAttachment } from '../types';
+import { UserCircleIcon, CheckCircleIcon, ShieldExclamationIcon, ArrowUturnLeftIcon, DocumentIcon, PaperClipIcon } from '../types';
 
 interface TransactionDetailModalProps {
   transaction: Transaction;
@@ -10,7 +10,7 @@ interface TransactionDetailModalProps {
   onClose: () => void;
   onViewProfile: (user: User) => void;
   onRaiseDispute: (transactionId: string) => void;
-  onMarkAsShipped: (transactionId: string, trackingNumber: string) => void;
+  onMarkAsShipped: (transactionId: string, trackingNumber: string, proofOfShipment: File) => void;
   onAcceptItem: (transactionId: string) => void;
   onAdminUpdateTransaction: (transactionId: string, updates: Partial<Transaction>) => void;
   onSelectPost: (post: Post) => void;
@@ -136,6 +136,7 @@ const PendingSpinner: React.FC = () => (
 
 export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ transaction, currentUser, users, posts, onClose, onViewProfile, onRaiseDispute, onMarkAsShipped, onAcceptItem, onAdminUpdateTransaction, onSelectPost, onOpenReviewModal, onOpenTransactionChat, onReverseAdminAction }) => {
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [shippingProof, setShippingProof] = useState<File | null>(null);
   const [partialRefundAmount, setPartialRefundAmount] = useState('');
   const [showPartialRefundInput, setShowPartialRefundInput] = useState(false);
 
@@ -158,8 +159,8 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
 
   const handleMarkAsShippedSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (trackingNumber.trim()) {
-      onMarkAsShipped(transaction.id, trackingNumber.trim());
+    if (trackingNumber.trim() && shippingProof) {
+      onMarkAsShipped(transaction.id, trackingNumber.trim(), shippingProof);
     }
   };
   
@@ -190,11 +191,18 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
     switch (transaction.status) {
       case 'In Escrow':
         return (
-          <form onSubmit={handleMarkAsShippedSubmit} className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="font-semibold text-text-primary dark:text-dark-text-primary mb-2">Action Required: Ship Item</h4>
-            <p className="text-sm text-text-secondary dark:text-dark-text-secondary mb-3">The buyer's payment is secured. Ship the item and enter the tracking number below to proceed.</p>
-            <input type="text" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required />
-            <button type="submit" className="mt-3 w-full px-4 py-2 bg-secondary text-white font-semibold rounded-lg hover:opacity-90 transition-colors">Confirm Shipment</button>
+          <form onSubmit={handleMarkAsShippedSubmit} className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+            <h4 className="font-semibold text-text-primary dark:text-dark-text-primary">Action Required: Ship Item</h4>
+            <p className="text-sm text-text-secondary dark:text-dark-text-secondary">The buyer's payment is secured. Ship the item and provide the tracking number and proof of shipment below.</p>
+            <div>
+                <label className="text-xs font-medium" htmlFor="tracking">Tracking Number</label>
+                <input type="text" id="tracking" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required />
+            </div>
+             <div>
+                <label className="text-xs font-medium" htmlFor="proof">Proof of Shipment (Receipt, Package Photo, etc.)</label>
+                 <input type="file" id="proof" onChange={(e) => setShippingProof(e.target.files ? e.target.files[0] : null)} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-light file:text-primary hover:file:bg-indigo-200" required />
+            </div>
+            <button type="submit" disabled={!shippingProof || !trackingNumber.trim()} className="w-full px-4 py-2 bg-secondary text-white font-semibold rounded-lg hover:opacity-90 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">Confirm Shipment</button>
           </form>
         );
       case 'Shipped': return <p className="text-center text-text-secondary mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">Waiting for item to be delivered...</p>;
@@ -206,8 +214,20 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
 
   const renderBuyerActions = () => {
     switch (transaction.status) {
-      case 'In Escrow': return <p className="text-center text-text-secondary dark:text-dark-text-secondary mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">Waiting for the seller to ship your item.</p>;
-      case 'Shipped': return <p className="text-center text-text-secondary dark:text-dark-text-secondary mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">Your item is on its way!</p>;
+      case 'In Escrow':
+        return (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center space-y-3">
+                <p className="text-text-secondary dark:text-dark-text-secondary">Waiting for the seller to ship your item.</p>
+                <button onClick={() => onRaiseDispute(transaction.id)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
+            </div>
+        );
+      case 'Shipped':
+        return (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center space-y-3">
+                <p className="text-text-secondary dark:text-dark-text-secondary">Your item is on its way!</p>
+                <button onClick={() => onRaiseDispute(transaction.id)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
+            </div>
+        );
       case 'Delivered':
         return (
           <div className="mt-4 p-4 bg-primary-light dark:bg-indigo-900/50 rounded-lg text-center">
@@ -311,18 +331,38 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                  </DetailRow>
              </div>
              {transaction.trackingNumber && <DetailRow label="Tracking Number"><p className="font-mono text-sm">{transaction.trackingNumber}</p></DetailRow>}
+             {transaction.shippingProof && (
+                <div className="sm:col-span-2">
+                    <DetailRow label="Proof of Shipment">
+                        <a href={transaction.shippingProof.url} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 text-primary hover:underline">
+                            {transaction.shippingProof.type === 'image' && <img src={transaction.shippingProof.url} alt="Proof" className="w-16 h-16 object-cover rounded-md" />}
+                            <PaperClipIcon className="w-5 h-5" />
+                            <span>{transaction.shippingProof.name}</span>
+                        </a>
+                    </DetailRow>
+                </div>
+             )}
              <hr className="sm:col-span-2 my-2 dark:border-gray-700" />
              <DetailRow label="Date Initiated">{formatDate(transaction.date)}</DetailRow>
              <DetailRow label="Date Shipped">{formatDate(transaction.shippedAt)}</DetailRow>
              <DetailRow label="Date Delivered">{formatDate(transaction.deliveredAt)}</DetailRow>
              <DetailRow label="Date Completed">{formatDate(transaction.completedAt)}</DetailRow>
           </div>
+          
+           {transaction.status === 'Pending' && <PendingSpinner />}
+
+           {isSeller && renderSellerActions()}
+           {isBuyer && renderBuyerActions()}
+
            {transaction.status === 'Cancelled' && (
               <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 rounded-lg text-center">
                   <h4 className="font-bold text-red-800 dark:text-red-300">Transaction Cancelled</h4>
                   {transaction.failureReason && <p className="text-sm text-red-700 dark:text-red-300/80 mt-1">{transaction.failureReason}</p>}
               </div>
           )}
+
+          {isAdmin && transaction.status !== 'Completed' && transaction.status !== 'Cancelled' && transaction.status !== 'Pending' && renderAdminActions()}
+
           {transaction.adminActions && transaction.adminActions.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold text-text-primary dark:text-dark-text-primary">Admin Action History</h4>
@@ -334,8 +374,8 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                       <p className="text-xs text-text-secondary dark:text-dark-text-secondary">{formatDate(action.timestamp)} {action.details && `(${action.details})`}</p>
                     </div>
                     {isSuperAdmin && action.adminId !== currentUser.id && action.action !== 'Reversal' && (
-                        <button onClick={() => onReverseAdminAction(transaction.id, action.id)} className="mt-2 sm:mt-0 flex items-center space-x-1 text-xs px-2 py-1 bg-gray-200 dark:bg-gray-500 hover:bg-gray-300 dark:hover:bg-gray-400 rounded-md">
-                            <ArrowUturnLeftIcon className="w-4 h-4" />
+                        <button onClick={() => onReverseAdminAction(transaction.id, action.id)} className="mt-2 sm:mt-0 flex items-center space-x-1 px-2 py-1 bg-gray-200 dark:bg-gray-500 text-xs font-semibold rounded-md hover:bg-gray-300 dark:hover:bg-gray-400">
+                            <ArrowUturnLeftIcon className="w-3 h-3"/>
                             <span>Reverse</span>
                         </button>
                     )}
@@ -344,19 +384,15 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
               </ul>
             </div>
           )}
-           <div className="mt-4">
-             <button
-                onClick={() => onOpenTransactionChat(transaction)}
-                className="w-full px-4 py-3 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 font-semibold rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-colors"
-            >
-                Go to Transaction Chat
-            </button>
-           </div>
-          {transaction.status === 'Pending' ? <PendingSpinner /> : (isAdmin ? renderAdminActions() : (isSeller ? renderSellerActions() : renderBuyerActions()))}
         </div>
-
-        <div className="p-4 border-t bg-gray-50 dark:bg-dark-surface flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-text-secondary dark:text-dark-text-secondary rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Close</button>
+        
+        <div className="p-4 border-t bg-gray-50 dark:bg-dark-surface flex justify-between items-center">
+            <button onClick={() => onOpenTransactionChat(transaction)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-text-secondary dark:text-dark-text-secondary rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                Open Chat
+            </button>
+            <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-text-secondary dark:text-dark-text-secondary rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                Close
+            </button>
         </div>
       </div>
     </div>

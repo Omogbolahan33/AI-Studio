@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -26,7 +25,7 @@ import { ForwardMessageModal } from './components/ForwardMessageModal';
 import { AddBankAccountModal } from './components/AddBankAccountModal';
 import { AddAddressModal } from './components/AddAddressModal';
 import { ChartBarIcon, DocumentReportIcon, ShieldExclamationIcon, ClockIcon, FlagIcon } from './types';
-import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount } from './types';
+import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount, DisputeMessage, FileAttachment } from './types';
 import { mockTransactions, mockDisputes, mockPosts, mockChats, mockUsers, mockCategories, mockNotifications, mockActivityLog, mockStickers } from './constants';
 import { SettingsPage } from './components/SettingsPage';
 import { TransactionManagementPage } from './components/TransactionManagementPage';
@@ -545,22 +544,49 @@ const App: React.FC = () => {
   };
 
   const getMessageContentPreview = (message: Message): string => {
-    if (message.text) {
-        return message.text;
-    }
-    if (message.stickerUrl) {
-        return 'Sticker';
-    }
-    if (message.voiceNote) {
-        return 'Voice Note';
-    }
+    if (message.text) return message.text;
+    if (message.stickerUrl) return 'Sticker';
+    if (message.voiceNote) return 'Voice Note';
+    if (message.attachment) return `Attachment: ${message.attachment.name}`;
     return '...';
   };
 
-  const handleSendMessage = (chatId: string, messageContent: Omit<Message, 'id' | 'sender' | 'timestamp'>) => {
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+  };
+
+  const getFileType = (file: File): FileAttachment['type'] => {
+      if (file.type.startsWith('image/')) return 'image';
+      if (file.type.startsWith('video/')) return 'video';
+      if (file.type === 'application/pdf') return 'pdf';
+      return 'other';
+  };
+
+  const handleSendMessage = async (chatId: string, messageContent: Omit<Message, 'id' | 'sender' | 'timestamp'> & { attachmentFile?: File }) => {
     if (!loggedInUser) return;
     
     let updatedChat: Chat | undefined;
+    let attachment: FileAttachment | undefined;
+
+    if (messageContent.attachmentFile) {
+        try {
+            const dataUrl = await fileToDataUrl(messageContent.attachmentFile);
+            attachment = {
+                name: messageContent.attachmentFile.name,
+                url: dataUrl,
+                type: getFileType(messageContent.attachmentFile),
+            };
+        } catch (error) {
+            console.error("Error processing file attachment:", error);
+            setToast({ message: "Could not send the file.", type: 'error' });
+            return;
+        }
+    }
 
     setChats(prevChats => prevChats.map(chat => {
         if (chat.id === chatId) {
@@ -568,7 +594,12 @@ const App: React.FC = () => {
                 id: `MSG-${Date.now()}`,
                 sender: loggedInUser.name,
                 timestamp: new Date().toISOString(),
-                ...messageContent
+                text: messageContent.text,
+                stickerUrl: messageContent.stickerUrl,
+                voiceNote: messageContent.voiceNote,
+                replyTo: messageContent.replyTo,
+                isForwarded: messageContent.isForwarded,
+                attachment,
             };
             updatedChat = {
                 ...chat,
@@ -603,10 +634,11 @@ const App: React.FC = () => {
   const handleForwardMessage = (message: Message, targetChatIds: string[]) => {
     if (!loggedInUser) return;
 
-    const messageToForward: Omit<Message, 'id' | 'sender' | 'timestamp' | 'replyTo'> = {
+    const messageToForward = {
         text: message.text,
         stickerUrl: message.stickerUrl,
         voiceNote: message.voiceNote,
+        attachment: message.attachment, // Forward attachments too
         isForwarded: true,
     };
 
@@ -1119,16 +1151,32 @@ const App: React.FC = () => {
     setToast({ message: wasPinned ? "Post unpinned." : "Post pinned for 24 hours.", type: 'success'});
   };
 
-  const handleAdminSendMessage = (disputeId: string, message: string) => {
-    if (!loggedInUser || (loggedInUser.role !== 'Admin' && loggedInUser.role !== 'Super Admin')) return;
+  const handleSendDisputeMessage = async (disputeId: string, message: { text?: string; attachmentFile?: File }) => {
+    if (!loggedInUser) return;
+
+    let attachment: FileAttachment | undefined;
+    if (message.attachmentFile) {
+        try {
+            const dataUrl = await fileToDataUrl(message.attachmentFile);
+            attachment = {
+                name: message.attachmentFile.name,
+                url: dataUrl,
+                type: getFileType(message.attachmentFile),
+            };
+        } catch (error) {
+            setToast({ message: "Could not attach file.", type: 'error' });
+            return;
+        }
+    }
 
     let updatedDispute: Dispute | undefined;
     
     setDisputes(prev => prev.map(d => {
         if (d.id === disputeId) {
-            const newHistory = {
+            const newHistory: DisputeMessage = {
                 sender: loggedInUser.name,
-                message,
+                message: message.text,
+                attachment: attachment,
                 timestamp: new Date().toISOString()
             };
             updatedDispute = { ...d, chatHistory: [...d.chatHistory, newHistory] };
@@ -1138,23 +1186,22 @@ const App: React.FC = () => {
     }));
 
     if (updatedDispute) {
-        const buyer = users.find(u => u.name === updatedDispute!.buyer);
-        const seller = users.find(u => u.name === updatedDispute!.seller);
-        const newNotifications: Notification[] = [];
-        const content = `An admin has sent a message regarding your dispute for transaction ${updatedDispute.transactionId}.`;
+        const otherParties = [
+            users.find(u => u.name === updatedDispute!.buyer),
+            users.find(u => u.name === updatedDispute!.seller),
+        ].filter(Boolean) as User[];
         
-        if (buyer) {
-            newNotifications.push({
-                id: `notif-admin-msg-${Date.now()}-b`, userId: buyer.id, type: 'system',
-                content, link: '#', timestamp: new Date().toISOString(), read: false, disputeId
-            });
-        }
-        if (seller) {
-            newNotifications.push({
-                id: `notif-admin-msg-${Date.now()}-s`, userId: seller.id, type: 'system',
-                content, link: '#', timestamp: new Date().toISOString(), read: false, disputeId
-            });
-        }
+        const newNotifications: Notification[] = [];
+        const content = `${loggedInUser.name} sent a message in your dispute for transaction ${updatedDispute.transactionId}.`;
+        
+        otherParties.forEach(party => {
+            if (party.id !== loggedInUser.id) {
+                newNotifications.push({
+                    id: `notif-disp-msg-${Date.now()}-${party.id}`, userId: party.id, type: 'system',
+                    content, link: '#', timestamp: new Date().toISOString(), read: false, disputeId
+                });
+            }
+        });
         setNotifications(prev => [...newNotifications, ...prev]);
     }
   };
@@ -1270,13 +1317,26 @@ const App: React.FC = () => {
     setToast({ message: 'Dispute raised. An admin will review your case.', type: 'success' });
   };
   
-  const handleMarkAsShipped = (transactionId: string, trackingNumber: string) => {
+  const handleMarkAsShipped = async (transactionId: string, trackingNumber: string, proofOfShipment: File) => {
     const now = new Date().toISOString();
     let updatedTransaction: Transaction | null = null;
     
+    let shippingProof: FileAttachment | undefined;
+    try {
+        const dataUrl = await fileToDataUrl(proofOfShipment);
+        shippingProof = {
+            name: proofOfShipment.name,
+            url: dataUrl,
+            type: getFileType(proofOfShipment),
+        };
+    } catch (error) {
+        setToast({ message: "Could not process proof of shipment.", type: 'error' });
+        return;
+    }
+
     setTransactions(prev => prev.map(t => {
       if (t.id === transactionId) {
-        updatedTransaction = { ...t, status: 'Shipped', trackingNumber, shippedAt: now };
+        updatedTransaction = { ...t, status: 'Shipped', trackingNumber, shippedAt: now, shippingProof };
         return updatedTransaction;
       }
       return t;
@@ -1757,7 +1817,7 @@ const App: React.FC = () => {
           <button onClick={() => setPolicyModal({ title: 'Privacy Policy', content: privacyPolicyContent })} className="hover:underline">Privacy Policy</button>
         </footer>
       </div>
-       {selectedDispute && <DisputeModal dispute={selectedDispute} transaction={transactions.find(t => t.id === selectedDispute.transactionId)} currentUser={loggedInUser} users={users} onClose={() => setSelectedDispute(null)} onResolve={handleResolveDispute} onAdminSendMessage={handleAdminSendMessage} />}
+       {selectedDispute && <DisputeModal dispute={selectedDispute} transaction={transactions.find(t => t.id === selectedDispute.transactionId)} currentUser={loggedInUser} users={users} onClose={() => setSelectedDispute(null)} onResolve={handleResolveDispute} onSendMessage={handleSendDisputeMessage} />}
        {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={handleRaiseDispute} onMarkAsShipped={handleMarkAsShipped} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={handleAdminUpdateTransaction} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={handleReverseAdminAction} />}
        {userToBan && <BanUserModal user={userToBan} onClose={() => setUserToBan(null)} onConfirm={handleConfirmBan} />}
        {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Transaction, Dispute, Comment, ActivityLog, Review } from '../types';
-import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon } from '../types';
+import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon } from '../types';
 import { PostListItem } from './PostListItem';
 import { CommentItem } from './CommentItem';
 import { TransactionsTable } from './TransactionsTable';
@@ -39,7 +39,7 @@ interface MyProfilePageProps {
   onResolveCommentFlag: (postId: string, commentId: string) => void;
 }
 
-type ProfileTab = 'Activity' | 'Transactions' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
+type ProfileTab = 'Activity' | 'Purchases' | 'Sales' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
     <button
@@ -116,7 +116,6 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     const userActivity = [...userPosts, ...userComments]
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
-    const userTransactions = allTransactions.filter(t => t.buyer === currentUser.name || t.seller === currentUser.name);
     const userDisputes = allDisputes.filter(d => d.buyer === currentUser.name || d.seller === currentUser.name);
 
     const followers = users.filter(u => u.followingIds.includes(currentUser.id));
@@ -176,10 +175,16 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                         })}
                     </div>
                 ) : <p className="text-center text-text-secondary py-8">You have no recent activity.</p>;
-            case 'Transactions':
-                return userTransactions.length > 0 ? (
-                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><TransactionsTable transactions={userTransactions} onSelectTransaction={onSelectTransaction} /></div>
-                ) : <p className="text-center text-text-secondary py-8">You have no transactions.</p>;
+            case 'Purchases':
+                const purchaseTransactions = allTransactions.filter(t => t.buyer === currentUser.name);
+                return purchaseTransactions.length > 0 ? (
+                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><TransactionsTable transactions={purchaseTransactions} onSelectTransaction={onSelectTransaction} /></div>
+                ) : <p className="text-center text-text-secondary py-8">You have not purchased any items.</p>;
+            case 'Sales':
+                const salesTransactions = allTransactions.filter(t => t.seller === currentUser.name);
+                return salesTransactions.length > 0 ? (
+                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><TransactionsTable transactions={salesTransactions} onSelectTransaction={onSelectTransaction} /></div>
+                ) : <p className="text-center text-text-secondary py-8">You have not sold any items.</p>;
             case 'Disputes':
                 return userDisputes.length > 0 ? (
                      <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><DisputesTable disputes={userDisputes} onDisputeSelect={onDisputeSelect} /></div>
@@ -254,8 +259,11 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                      <TabButton active={activeTab === 'Reviews'} onClick={() => setActiveTab('Reviews')}>
                         <StarIcon className="w-5 h-5 mr-2" /> Reviews
                     </TabButton>
-                    <TabButton active={activeTab === 'Transactions'} onClick={() => setActiveTab('Transactions')}>
-                        <DocumentReportIcon className="w-5 h-5 mr-2" /> Transactions
+                    <TabButton active={activeTab === 'Purchases'} onClick={() => setActiveTab('Purchases')}>
+                        <DocumentReportIcon className="w-5 h-5 mr-2" /> Purchases
+                    </TabButton>
+                     <TabButton active={activeTab === 'Sales'} onClick={() => setActiveTab('Sales')}>
+                        <CurrencyDollarIcon className="w-5 h-5 mr-2" /> Sales
                     </TabButton>
                     <TabButton active={activeTab === 'Disputes'} onClick={() => setActiveTab('Disputes')}>
                          <ShieldExclamationIcon className="w-5 h-5 mr-2" /> Disputes

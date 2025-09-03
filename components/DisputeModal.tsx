@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { analyzeDispute } from '../services/geminiService';
+// FIX: Changed onAdminSendMessage to onSendMessage and updated its signature to match the props passed in App.tsx.
 import type { Dispute, AIAnalysis, Transaction, User } from '../types';
 
 interface DisputeModalProps {
@@ -9,7 +10,7 @@ interface DisputeModalProps {
   users: User[];
   onClose: () => void;
   onResolve: (disputeId: string, resolution: string) => void;
-  onAdminSendMessage: (disputeId: string, message: string) => void;
+  onSendMessage: (disputeId: string, message: { text?: string; attachmentFile?: File }) => void;
 }
 
 const LoadingSpinner: React.FC = () => (
@@ -30,7 +31,7 @@ const AnalysisSection: React.FC<{ title: string; children: React.ReactNode }> = 
 
 type ResolutionType = 'refund' | 'release' | 'partial';
 
-export const DisputeModal: React.FC<DisputeModalProps> = ({ dispute, transaction, currentUser, users, onClose, onResolve, onAdminSendMessage }) => {
+export const DisputeModal: React.FC<DisputeModalProps> = ({ dispute, transaction, currentUser, users, onClose, onResolve, onSendMessage }) => {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +81,8 @@ export const DisputeModal: React.FC<DisputeModalProps> = ({ dispute, transaction
   const handleAdminMessageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminMessage.trim()) {
-      onAdminSendMessage(dispute.id, adminMessage.trim());
+      // FIX: Updated the call to use onSendMessage with the correct message object structure.
+      onSendMessage(dispute.id, { text: adminMessage.trim() });
       setAdminMessage('');
     }
   };

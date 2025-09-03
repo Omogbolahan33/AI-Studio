@@ -1,4 +1,4 @@
-import type { Transaction, Dispute, Post, Chat, User, Category, Notification, ActivityLog, Message } from './types';
+import type { Transaction, Dispute, Post, Chat, User, Category, Notification, ActivityLog, Message, DisputeMessage } from './types';
 
 const now = new Date();
 const timeAgo = (value: number, unit: 's' | 'm' | 'h' | 'd') => {
