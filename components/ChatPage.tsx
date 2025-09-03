@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Chat, Transaction, User, Post, Message } from '../types';
-import { ClockIcon, ChevronLeftIcon, UserCircleIcon, PhoneIcon } from '../types';
+import { ClockIcon, ChevronLeftIcon, UserCircleIcon, PhoneIcon, ChevronRightIcon } from '../types';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
@@ -12,6 +12,8 @@ interface ChatPageProps {
     currentUser: User;
     users: User[];
     posts: Post[];
+    transactions: Transaction[];
+    onSelectTransaction: (transaction: Transaction) => void;
     onViewProfile: (user: User) => void;
     onSelectPost: (post: Post) => void;
     onInitiateCall: (user: User) => void;
@@ -199,8 +201,9 @@ const ConversationView: React.FC<{
 };
 
 export const ChatPage: React.FC<ChatPageProps> = (props) => {
-    const { chats, activeChatId, onSelectChat, currentUser, users, posts, onViewProfile } = props;
+    const { chats, activeChatId, onSelectChat, currentUser, users, posts, onViewProfile, transactions, onSelectTransaction } = props;
     const [selectedChatIdForMobile, setSelectedChatIdForMobile] = useState<string | null>(null);
+    const [isTxPaneOpen, setIsTxPaneOpen] = useState(true);
     
     const activeChat = chats.find(c => c.id === activeChatId);
     
@@ -219,6 +222,14 @@ export const ChatPage: React.FC<ChatPageProps> = (props) => {
 
         return { otherUser: user, post: p };
     }, [activeChat, currentUser, users, posts]);
+
+    const sharedTransactions = useMemo(() => {
+        if (!activeChat || !otherUser) return [];
+        return transactions.filter(t => 
+            (t.buyer === currentUser.name && t.seller === otherUser.name) ||
+            (t.seller === currentUser.name && t.buyer === otherUser.name)
+        );
+    }, [activeChat, otherUser, currentUser.name, transactions]);
 
     const handleSelectChatForMobile = (chatId: string) => {
         onSelectChat(chatId);
@@ -254,11 +265,19 @@ export const ChatPage: React.FC<ChatPageProps> = (props) => {
                 ) : (
                     activeChat && (
                         <ConversationView 
-                              {...props}
-                              chat={activeChat} 
-                              onBack={() => setSelectedChatIdForMobile(null)} 
+                              chat={activeChat}
+                              currentUser={currentUser}
+                              users={users}
+                              onSendMessage={props.onSendMessage}
+                              onBack={() => setSelectedChatIdForMobile(null)}
                               otherUser={otherUser}
                               post={post}
+                              onViewProfile={onViewProfile}
+                              onSelectPost={props.onSelectPost}
+                              onInitiateCall={props.onInitiateCall}
+                              allStickers={props.allStickers}
+                              onSaveSticker={props.onSaveSticker}
+                              onForwardMessage={props.onForwardMessage}
                            />
                     )
                 )}
@@ -288,15 +307,49 @@ export const ChatPage: React.FC<ChatPageProps> = (props) => {
             </div>
             <div className="hidden md:flex flex-1 h-full">
                 {activeChat ? (
-                    <div className="flex flex-1">
+                    <div className="flex flex-1 overflow-hidden">
                         <div className="flex-1 flex flex-col">
                             <ConversationView 
-                                {...props}
-                                chat={activeChat} 
+                                chat={activeChat}
+                                currentUser={currentUser}
+                                users={users}
+                                onSendMessage={props.onSendMessage}
                                 otherUser={otherUser}
                                 post={post}
+                                onViewProfile={onViewProfile}
+                                onSelectPost={props.onSelectPost}
+                                onInitiateCall={props.onInitiateCall}
+                                allStickers={props.allStickers}
+                                onSaveSticker={props.onSaveSticker}
+                                onForwardMessage={props.onForwardMessage}
                             />
                         </div>
+                        {sharedTransactions.length > 0 && (
+                            <div className={`flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-surface/50 transition-all duration-300 ease-in-out ${isTxPaneOpen ? 'w-80' : 'w-12'}`}>
+                                <div className="h-full flex flex-col">
+                                    <div className="p-2 border-b dark:border-gray-700 flex items-center justify-between">
+                                        {isTxPaneOpen && <h3 className="font-bold text-text-primary dark:text-dark-text-primary text-sm px-2">Shared Transactions</h3>}
+                                        <button onClick={() => setIsTxPaneOpen(!isTxPaneOpen)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                                            {isTxPaneOpen ? <ChevronRightIcon className="w-5 h-5" /> : <ChevronLeftIcon className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+                                    {isTxPaneOpen && (
+                                        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                                            {sharedTransactions.map(tx => (
+                                                <button key={tx.id} onClick={() => onSelectTransaction(tx)} className="w-full text-left p-2 rounded-lg bg-white dark:bg-dark-surface hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                    <div className="flex justify-between items-center text-xs font-bold">
+                                                        <span className="text-primary">{tx.id}</span>
+                                                        <span>{tx.status}</span>
+                                                    </div>
+                                                    <p className="text-sm font-semibold truncate">{tx.item}</p>
+                                                    <p className="text-xs text-right text-text-secondary">₦{tx.amount.toLocaleString()}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex-1 flex items-center justify-center">

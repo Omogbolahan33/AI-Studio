@@ -17,6 +17,19 @@ const timeAgo = (isoDate: string): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const getMessageContentPreview = (message: Message): string => {
+    if (message.text) {
+        return message.text;
+    }
+    if (message.stickerUrl) {
+        return 'Sticker';
+    }
+    if (message.voiceNote) {
+        return `Voice Note (${message.voiceNote.duration}s)`;
+    }
+    return '...';
+};
+
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, currentUser, onReply, onForward, onSaveSticker }) => {
   const isMyMessage = message.sender === currentUser.name;
   const [showActions, setShowActions] = useState(false);

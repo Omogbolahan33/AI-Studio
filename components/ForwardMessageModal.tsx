@@ -56,4 +56,37 @@ export const ForwardMessageModal: React.FC<ForwardMessageModalProps> = ({ messag
                         <li key={chat.id}>
                             <label className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                 <input
-                                    type="checkbox
+                                    type="checkbox"
+                                    checked={selectedChatIds.includes(chat.id)}
+                                    onChange={() => handleToggleChat(chat.id)}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary dark:bg-gray-600 dark:border-gray-500"
+                                />
+                                {otherUser ? (
+                                    <>
+                                        {otherUser.avatarUrl ? (
+                                            <img src={otherUser.avatarUrl} alt={otherUser.name} className="w-10 h-10 rounded-full" />
+                                        ) : (
+                                            <UserCircleIcon className="w-10 h-10 text-gray-400" />
+                                        )}
+                                        <span className="font-semibold text-sm text-text-primary dark:text-dark-text-primary">{otherUser.name}</span>
+                                    </>
+                                ) : (
+                                   <span className="font-semibold text-sm text-text-secondary dark:text-dark-text-secondary">Unknown Chat</span>
+                                )}
+                            </label>
+                        </li>
+                    );
+                })}
+            </ul>
+        </div>
+        
+        <div className="p-6 border-t bg-gray-50 dark:bg-gray-900 flex justify-end space-x-3 mt-auto">
+          <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-text-secondary dark:text-dark-text-secondary rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancel</button>
+          <button type="button" onClick={handleSubmit} disabled={selectedChatIds.length === 0} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:bg-gray-400">
+            Forward
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -13,6 +13,12 @@ export interface Review {
   transactionId?: string;
 }
 
+export interface BankAccount {
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -34,6 +40,7 @@ export interface User {
   reviews: Review[];
   pendingFollowerIds: string[];
   savedStickers?: string[];
+  bankAccount?: BankAccount;
 }
 
 export interface AdminAction {
@@ -325,6 +332,12 @@ export const ChevronLeftIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) 
   )
 );
 
+export const ChevronRightIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
+    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M8.25 4.5l7.5 7.5-7.5-7.5" })
+  )
+);
+
 export const CommunityIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.928a4.5 4.5 0 117.082-2.072M3 18.72a9.094 9.094 0 013.741-.479 3 3 0 01-4.682-2.72m7.5-2.928a4.5 4.5 0 10-7.082-2.072" })
@@ -548,6 +561,16 @@ export const MicrophoneIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =
 export const MicrophoneSlashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17.25 9.75v-.375c0-1.621-.624-3.129-1.758-4.242-1.134-1.114-2.621-1.758-4.242-1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375m13.5 0v.375c0 1.621-.624 3.129-1.758 4.242-1.134 1.114-2.621 1.758-4.242 1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375M19.5 10.5v.75c0 4.142-3.358 7.5-7.5 7.5s-7.5-3.358-7.5-7.5v-.75m15 0a9 9 0 00-9-9-9 9 0 00-9 9m18 0l-3.35-3.35m-12.8 0L3 13.65" })
+    )
+);
+export const VideoCameraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z" })
+    )
+);
+export const VideoCameraSlashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M12 18.75H4.5A2.25 2.25 0 012.25 16.5v-9A2.25 2.25 0 014.5 5.25H6m9 0h1.5A2.25 2.25 0 0118.75 7.5v3.286m-3.286 6.214l-6.214-6.214M21 21l-6-6" })
     )
 );
 export const ShareIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (

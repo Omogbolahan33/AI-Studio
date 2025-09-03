@@ -20,9 +20,12 @@ import { ReviewModal } from './components/ReviewModal';
 import { PolicyModal } from './components/PolicyModal';
 import { ChatModal } from './components/ChatModal';
 import { CallModal } from './components/CallModal';
+import { CallTypeSelectionModal } from './components/CallTypeSelectionModal';
 import { ForwardMessageModal } from './components/ForwardMessageModal';
+import { AddBankAccountModal } from './components/AddBankAccountModal';
+import { AddAddressModal } from './components/AddAddressModal';
 import { ChartBarIcon, DocumentReportIcon, ShieldExclamationIcon, ClockIcon, FlagIcon } from './types';
-import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message } from './types';
+import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount } from './types';
 import { mockTransactions, mockDisputes, mockPosts, mockChats, mockUsers, mockCategories, mockNotifications, mockActivityLog, mockStickers } from './constants';
 import { SettingsPage } from './components/SettingsPage';
 import { TransactionManagementPage } from './components/TransactionManagementPage';
@@ -130,8 +133,13 @@ const App: React.FC = () => {
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
   const [chatIdInModal, setChatIdInModal] = useState<string | null>(null);
   const [initialTxMgmtTab, setInitialTxMgmtTab] = useState<'transactions' | 'disputes'>('transactions');
-  const [activeCall, setActiveCall] = useState<{ withUser: User } | null>(null);
+  const [activeCall, setActiveCall] = useState<{ withUser: User; type: 'video' | 'audio' } | null>(null);
+  const [callSelectionForUser, setCallSelectionForUser] = useState<User | null>(null);
   const [forwardMessageState, setForwardMessageState] = useState<{ message: Message; isOpen: boolean }>({ message: mockChats[0].messages[0], isOpen: false });
+  
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [isAddBankAccountModalOpen, setIsAddBankAccountModalOpen] = useState(false);
+  const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
 
 
   const chatInModal = useMemo(() => chats.find(c => c.id === chatIdInModal), [chats, chatIdInModal]);
@@ -277,7 +285,7 @@ const App: React.FC = () => {
         }
         setLoggedInUser(user);
         setLoginError('');
-        setToast({ message: `Successfully signed in as ${user.name}!`, type: 'success' });
+        setToast({ message: `Welcome ${user.name}!`, type: 'success' });
     } else {
         setLoginError(`Could not find the test user account for ${provider}.`);
     }
@@ -336,20 +344,31 @@ const App: React.FC = () => {
   };
   
   const handleInitiatePurchase = (post: Post) => {
-    if (!loggedInUser || !post.price) return;
-    const fee = post.price * 0.05;
-    const total = post.price + fee;
+    if (!loggedInUser) return;
+    
+    const initiatePurchaseLogic = (postToBuy: Post) => {
+        if (!postToBuy.price) return;
+        const fee = postToBuy.price * 0.05;
+        const total = postToBuy.price + fee;
 
-    setConfirmation({
-      title: "Confirm Purchase",
-      message: `Item: ${post.title}\nPrice: ₦${post.price?.toLocaleString()}\nPlatform Fee (5%): ₦${fee.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n--------------------\nTotal: ₦${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-      onConfirm: () => {
-        handleCreateTransaction(post);
-        setConfirmation(null);
-      },
-      confirmText: "Confirm & Pay",
-      variant: 'primary'
-    });
+        setConfirmation({
+          title: "Confirm Purchase",
+          message: `Item: ${postToBuy.title}\nPrice: ₦${postToBuy.price?.toLocaleString()}\nPlatform Fee (5%): ₦${fee.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n--------------------\nTotal: ₦${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+          onConfirm: () => {
+            handleCreateTransaction(postToBuy);
+            setConfirmation(null);
+          },
+          confirmText: "Confirm & Pay",
+          variant: 'primary'
+        });
+    };
+
+    if (!loggedInUser.address || !loggedInUser.city || !loggedInUser.zipCode) {
+        setPendingAction(() => () => initiatePurchaseLogic(post));
+        setIsAddAddressModalOpen(true);
+    } else {
+        initiatePurchaseLogic(post);
+    }
   };
 
   const handleCreateTransaction = (post: Post) => {
@@ -617,42 +636,51 @@ const App: React.FC = () => {
   const handleCreatePost = (newPostData: { title: string; content: string; isAdvert: boolean; price?: number, categoryId: string, mediaUrl?: string, mediaType?: 'image' | 'video', brand?: string, condition?: PostCondition }) => {
     if (!loggedInUser) return;
     
-    const now = new Date().toISOString();
-    const newPost: Post = {
-      id: `POST${Math.random().toString(36).substring(2, 9)}`,
-      author: loggedInUser.name,
-      timestamp: now,
-      lastActivityTimestamp: now,
-      title: newPostData.title,
-      content: newPostData.content,
-      isAdvert: newPostData.isAdvert,
-      price: newPostData.price,
-      comments: [],
-      categoryId: newPostData.categoryId,
-      likedBy: [],
-      dislikedBy: [],
-      mediaUrl: newPostData.mediaUrl,
-      mediaType: newPostData.mediaType,
-      brand: newPostData.brand,
-      condition: newPostData.condition,
-      flaggedBy: [],
-    };
-    setPosts(prevPosts => [newPost, ...prevPosts]);
-    createActivityLogEntry('Created Post', `"${newPost.title}"`);
+    const createPostLogic = (data: typeof newPostData) => {
+        const now = new Date().toISOString();
+        const newPost: Post = {
+          id: `POST${Math.random().toString(36).substring(2, 9)}`,
+          author: loggedInUser.name,
+          timestamp: now,
+          lastActivityTimestamp: now,
+          title: data.title,
+          content: data.content,
+          isAdvert: data.isAdvert,
+          price: data.price,
+          comments: [],
+          categoryId: data.categoryId,
+          likedBy: [],
+          dislikedBy: [],
+          mediaUrl: data.mediaUrl,
+          mediaType: data.mediaType,
+          brand: data.brand,
+          condition: data.condition,
+          flaggedBy: [],
+        };
+        setPosts(prevPosts => [newPost, ...prevPosts]);
+        createActivityLogEntry('Created Post', `"${newPost.title}"`);
 
-    const followers = users.filter(u => u.followingIds.includes(loggedInUser.id));
-    const postNotifications: Notification[] = followers.map(follower => ({
-        id: `notif-${Date.now()}-${follower.id}`,
-        userId: follower.id,
-        actorId: loggedInUser.id,
-        type: 'post',
-        content: `${loggedInUser.name} created a new post: "${newPost.title}"`,
-        link: '#',
-        postId: newPost.id,
-        timestamp: new Date().toISOString(),
-        read: false,
-    }));
-    setNotifications(prev => [...postNotifications, ...prev]);
+        const followers = users.filter(u => u.followingIds.includes(loggedInUser.id));
+        const postNotifications: Notification[] = followers.map(follower => ({
+            id: `notif-${Date.now()}-${follower.id}`,
+            userId: follower.id,
+            actorId: loggedInUser.id,
+            type: 'post',
+            content: `${loggedInUser.name} created a new post: "${newPost.title}"`,
+            link: '#',
+            postId: newPost.id,
+            timestamp: new Date().toISOString(),
+            read: false,
+        }));
+        setNotifications(prev => [...postNotifications, ...prev]);
+    };
+
+    if (newPostData.isAdvert && !loggedInUser.bankAccount) {
+        setPendingAction(() => () => createPostLogic(newPostData));
+        setIsAddBankAccountModalOpen(true);
+    } else {
+        createPostLogic(newPostData);
+    }
   };
   
   const handleEditPost = (postId: string, updatedPostData: { title: string; content: string; isAdvert: boolean; price?: number, categoryId: string, mediaUrl?: string, mediaType?: 'image' | 'video', brand?: string, condition?: PostCondition }) => {
@@ -1522,20 +1550,57 @@ const App: React.FC = () => {
   
     const handleInitiateCall = (userToCall: User) => {
         if (!loggedInUser) return;
-        const otherUser = users.find(u => u.id === userToCall.id);
-        if (!otherUser) return;
         
-        const canCall = loggedInUser.followingIds.includes(otherUser.id) || otherUser.followingIds.includes(loggedInUser.id);
+        const canCall = loggedInUser.followingIds.includes(userToCall.id) || userToCall.followingIds.includes(loggedInUser.id);
         if (!canCall) {
             setToast({ message: "At least one of you must follow the other to start a call.", type: 'error'});
             return;
         }
 
-        setActiveCall({ withUser: otherUser });
+        setCallSelectionForUser(userToCall);
+    };
+    
+    const handleStartCall = (user: User, type: 'video' | 'audio') => {
+        setCallSelectionForUser(null);
+        setActiveCall({ withUser: user, type });
     };
 
     const handleEndCall = () => {
         setActiveCall(null);
+    };
+    
+    const handleSaveBankAccount = (account: BankAccount) => {
+        if (!loggedInUser) return;
+        
+        const updatedUser = { ...loggedInUser, bankAccount: account };
+        setLoggedInUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === loggedInUser.id ? updatedUser : u));
+
+        setIsAddBankAccountModalOpen(false);
+        
+        setTimeout(() => {
+            pendingAction?.();
+            setPendingAction(null);
+        }, 0);
+
+        setToast({ message: 'Payout account saved successfully.', type: 'success' });
+    };
+
+    const handleSaveAddress = (addressDetails: { address: string; city: string; zipCode: string }) => {
+        if (!loggedInUser) return;
+        
+        const updatedUser = { ...loggedInUser, ...addressDetails };
+        setLoggedInUser(updatedUser);
+        setUsers(prev => prev.map(u => u.id === loggedInUser.id ? updatedUser : u));
+
+        setIsAddAddressModalOpen(false);
+
+        setTimeout(() => {
+            pendingAction?.();
+            setPendingAction(null);
+        }, 0);
+        
+        setToast({ message: 'Shipping address saved successfully.', type: 'success' });
     };
 
 
@@ -1637,6 +1702,8 @@ const App: React.FC = () => {
             currentUser={loggedInUser} 
             users={users} 
             posts={posts} 
+            transactions={transactions}
+            onSelectTransaction={setSelectedTransaction}
             onViewProfile={handleViewProfile} 
             onSelectPost={handleSelectPost} 
             onInitiateCall={handleInitiateCall}
@@ -1713,9 +1780,15 @@ const App: React.FC = () => {
             onSaveSticker={handleSaveSticker}
             onForwardMessage={(message) => setForwardMessageState({ message, isOpen: true })}
         />}
+        {callSelectionForUser && <CallTypeSelectionModal 
+            userToCall={callSelectionForUser}
+            onClose={() => setCallSelectionForUser(null)}
+            onStartCall={handleStartCall}
+        />}
         {activeCall && <CallModal
             currentUser={loggedInUser}
             otherUser={activeCall.withUser}
+            type={activeCall.type}
             onEndCall={handleEndCall}
         />}
         {forwardMessageState.isOpen && <ForwardMessageModal
@@ -1728,6 +1801,14 @@ const App: React.FC = () => {
                 handleForwardMessage(forwardMessageState.message, targetChatIds);
                 setForwardMessageState({ message: mockChats[0].messages[0], isOpen: false });
             }}
+        />}
+        {isAddBankAccountModalOpen && <AddBankAccountModal 
+            onClose={() => { setIsAddBankAccountModalOpen(false); setPendingAction(null); }} 
+            onSave={handleSaveBankAccount} 
+        />}
+        {isAddAddressModalOpen && <AddAddressModal 
+            onClose={() => { setIsAddAddressModalOpen(false); setPendingAction(null); }} 
+            onSave={handleSaveAddress} 
         />}
     </div>
   );
