@@ -231,6 +231,20 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                 )}
             </div>
         );
+      case 'Cancelled':
+          if (post) {
+            return (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
+                <button
+                  onClick={handleSelectPostClick}
+                  className="w-full px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition-colors"
+                >
+                  Return to Listing to Try Again
+                </button>
+              </div>
+            );
+          }
+          return null;
       default: return null;
     }
   };

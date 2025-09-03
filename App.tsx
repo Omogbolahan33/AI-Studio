@@ -265,6 +265,24 @@ const App: React.FC = () => {
     }
   };
   
+  const handleSsoLogin = (provider: 'google' | 'facebook') => {
+    // Simulate SSO login by finding a pre-defined user
+    const username = provider === 'google' ? 'alice' : 'bob';
+    const user = users.find(u => u.username === username);
+
+    if (user) {
+        if (!user.isActive) {
+            setLoginError('This account has been deactivated.');
+            return;
+        }
+        setLoggedInUser(user);
+        setLoginError('');
+        setToast({ message: `Successfully signed in as ${user.name}!`, type: 'success' });
+    } else {
+        setLoginError(`Could not find the test user account for ${provider}.`);
+    }
+  };
+
   const handleSignUp = (username: string, password: string): { success: boolean, message: string } => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
         return { success: false, message: 'Username is already taken.' };
@@ -356,7 +374,6 @@ const App: React.FC = () => {
     };
     setTransactions(prev => [newTransaction, ...prev]);
 
-    // Initial "processing" notification for buyer
     const processingNotification: Notification = {
       id: `notif-${now}-process`,
       userId: loggedInUser.id,
@@ -369,21 +386,18 @@ const App: React.FC = () => {
     };
     setNotifications(prev => [processingNotification, ...prev]);
     setToast({ message: `Processing your payment for "${post.title}"...`, type: 'success' });
-    setActiveView('My Profile');
-
-    // Simulate payment provider response
+    
     setTimeout(() => {
       const isSuccess = Math.random() > 0.2; // 80% success rate
 
       if (isSuccess) {
-        // PAYMENT SUCCESS
         setTransactions(prev => prev.map(t => 
           t.id === newTransaction.id ? { ...t, status: 'In Escrow' } : t
         ));
 
         const successTime = new Date().toISOString();
         const successNotifications: Notification[] = [];
-        const sellerNotification: Notification = {
+        successNotifications.push({
           id: `notif-${successTime}-s`,
           userId: seller.id,
           type: 'system',
@@ -392,10 +406,8 @@ const App: React.FC = () => {
           timestamp: successTime,
           read: false,
           transactionId: newTransaction.id,
-        };
-        successNotifications.push(sellerNotification);
-
-        const buyerNotification: Notification = {
+        });
+        successNotifications.push({
           id: `notif-${successTime}-b`,
           userId: loggedInUser.id,
           type: 'system',
@@ -404,18 +416,21 @@ const App: React.FC = () => {
           timestamp: successTime,
           read: false,
           transactionId: newTransaction.id,
-        };
-        successNotifications.push(buyerNotification);
+        });
         setNotifications(prev => [...successNotifications, ...prev]);
         setToast({ message: `Payment for "${post.title}" was successful!`, type: 'success' });
-
+        setActiveView('My Profile');
       } else {
-        // PAYMENT FAILURE
         const failureTime = new Date().toISOString();
+        const failedTransaction: Transaction = { 
+            ...newTransaction, 
+            status: 'Cancelled', 
+            cancelledAt: failureTime, 
+            failureReason: 'Payment provider declined the transaction.' 
+        };
+
         setTransactions(prev => prev.map(t => 
-          t.id === newTransaction.id 
-            ? { ...t, status: 'Cancelled', cancelledAt: failureTime, failureReason: 'Payment provider declined the transaction.' } 
-            : t
+          t.id === newTransaction.id ? failedTransaction : t
         ));
 
         const failureNotification: Notification = {
@@ -430,9 +445,10 @@ const App: React.FC = () => {
         };
         setNotifications(prev => [failureNotification, ...prev]);
         setToast({ message: `Payment for "${post.title}" failed.`, type: 'error' });
+        setSelectedTransaction(failedTransaction);
       }
 
-    }, 3000); // 3-second delay
+    }, 3000);
   };
   
   const handleStartChat = (options: { post?: Post; userToMessage?: User }) => {
@@ -829,6 +845,16 @@ const App: React.FC = () => {
       }
       return user;
     }));
+
+    setViewingProfileOfUser(prev => {
+        if (prev && prev.id === userIdToFollow) {
+            return {
+                ...prev,
+                pendingFollowerIds: [...prev.pendingFollowerIds, loggedInUser.id]
+            };
+        }
+        return prev;
+    });
 
     setToast({ message: 'Follow request sent.', type: 'success' });
   };
@@ -1515,9 +1541,9 @@ const App: React.FC = () => {
 
   if (!loggedInUser) {
     if (authMode === 'signup') {
-        return <SignUpPage onSignUp={handleSignUp} onSwitchMode={setAuthMode} />
+        return <SignUpPage onSignUp={handleSignUp} onSwitchMode={setAuthMode} onSsoLogin={handleSsoLogin} />
     }
-    return <LoginPage onLogin={handleLogin} error={loginError} onSwitchMode={setAuthMode} />;
+    return <LoginPage onLogin={handleLogin} error={loginError} onSwitchMode={setAuthMode} onSsoLogin={handleSsoLogin} />;
   }
   
   const mainContent = () => {
@@ -1630,7 +1656,8 @@ const App: React.FC = () => {
       {(loggedInUser.role === 'Admin' || loggedInUser.role === 'Super Admin') && <Sidebar activeView={activeView} onNavigate={handleNavigation} role={loggedInUser.role} isMobileOpen={isMobileSidebarOpen} onCloseMobile={() => setIsMobileSidebarOpen(false)} />}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-            role={loggedInUser.role} 
+            role={loggedInUser.role}
+            activeView={activeView}
             onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
             userName={loggedInUser.name}
             onSignOut={handleSignOut}

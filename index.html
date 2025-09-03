@@ -45,6 +45,22 @@
       }
     }
     </script>
+    <style>
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+    </style>
   </head>
   <body class="bg-background text-text-primary dark:bg-dark-background dark:text-dark-text-primary transition-colors duration-300">
     <div id="root"></div>

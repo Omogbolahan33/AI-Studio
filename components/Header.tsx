@@ -8,6 +8,7 @@ import { FollowRequestPanel } from './FollowRequestPanel';
 
 interface HeaderProps {
     role: UserRole;
+    activeView: View;
     onToggleMobileSidebar: () => void;
     userName: string;
     onSignOut: () => void;
@@ -27,7 +28,21 @@ interface HeaderProps {
     onDeclineFollowRequest: (requesterId: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ role, onToggleMobileSidebar, userName, onSignOut, onNavigate, notifications, messages, onNotificationClick, theme, onToggleTheme, currentUser, users, posts, onStartChat, onViewProfile, onSelectPost, onAcceptFollowRequest, onDeclineFollowRequest }) => {
+const NavLink: React.FC<{ label: View; onClick: () => void; active: boolean }> = ({ label, onClick, active }) => (
+    <button
+        onClick={onClick}
+        className={`px-4 py-2 text-base font-medium border-b-2 transition-colors duration-200 ${
+            active
+                ? 'border-primary text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+        }`}
+    >
+        {label}
+    </button>
+);
+
+
+export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobileSidebar, userName, onSignOut, onNavigate, notifications, messages, onNotificationClick, theme, onToggleTheme, currentUser, users, posts, onStartChat, onViewProfile, onSelectPost, onAcceptFollowRequest, onDeclineFollowRequest }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
@@ -214,11 +229,12 @@ export const Header: React.FC<HeaderProps> = ({ role, onToggleMobileSidebar, use
         <div className="flex items-center space-x-4">
             <button onClick={() => onNavigate('Forum')} className="flex items-center gap-2 text-2xl font-bold text-primary dark:text-dark-text-primary focus:outline-none hover:text-primary-hover dark:hover:text-gray-300">
                 <CommunityIcon className="w-8 h-8"/>
-                <span>Socials</span>
+                <span className="hidden sm:block">Socials</span>
             </button>
-            <nav className="hidden md:flex items-center space-x-2">
-                <button onClick={() => onNavigate('My Chats')} className="px-3 py-2 text-sm font-semibold text-text-primary dark:text-dark-text-primary rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">My Chats</button>
-            </nav>
+            <div className="hidden md:flex items-center border-l border-gray-200 dark:border-gray-700 ml-2 pl-2">
+                <NavLink label="Forum" onClick={() => onNavigate('Forum')} active={activeView === 'Forum'} />
+                <NavLink label="My Chats" onClick={() => onNavigate('My Chats')} active={activeView === 'My Chats'} />
+            </div>
         </div>
         <div className="flex-1 flex justify-center px-4 hidden md:flex">
              <SmartSearch />
@@ -282,7 +298,7 @@ export const Header: React.FC<HeaderProps> = ({ role, onToggleMobileSidebar, use
             <MobileSearch />
         ) : (
             <>
-                {role === 'Admin' ? <AdminHeader /> : <MemberHeader />}
+                {role === 'Admin' || role === 'Super Admin' ? <AdminHeader /> : <MemberHeader />}
       
                 <div className="flex items-center space-x-2">
                     <div className="relative" ref={profileRef}>
