@@ -8,9 +8,9 @@
     <script type="importmap">
 {
   "imports": {
-    "react": "https://jspm.dev/react@18.2.0",
-    "react-dom/client": "https://jspm.dev/react-dom@18.2.0/client",
-    "react/jsx-runtime": "https://jspm.dev/react@18.2.0/jsx-runtime",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
     "@google/genai": "https://esm.sh/@google/genai",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/"
@@ -20,6 +20,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
@@ -34,14 +35,18 @@
             text: {
               primary: '#1f2937',
               secondary: '#6b7280',
-            }
+            },
+            'dark-background': '#111827',
+            'dark-surface': '#1f2937',
+            'dark-text-primary': '#f9fafb',
+            'dark-text-secondary': '#9ca3af',
           }
         }
       }
     }
     </script>
   </head>
-  <body class="bg-background text-text-primary">
+  <body class="bg-background text-text-primary dark:bg-dark-background dark:text-dark-text-primary transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

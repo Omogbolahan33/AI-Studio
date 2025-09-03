@@ -1,65 +1,106 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Chat, Transaction } from '../types';
-import { ClockIcon, ChevronLeftIcon } from '../types';
-
+import type { Chat, Transaction, User, Post, Message } from '../types';
+import { ClockIcon, ChevronLeftIcon, UserCircleIcon, PhoneIcon } from '../types';
+import { ChatMessage } from './ChatMessage';
+import { ChatInput } from './ChatInput';
 
 interface ChatPageProps {
     chats: Chat[];
     activeChatId: string | null;
     onSelectChat: (chatId: string) => void;
-    onSendMessage: (chatId: string, message: string) => void;
-    allTransactions: Transaction[];
-    onSelectTransaction: (transaction: Transaction) => void;
+    onSendMessage: (chatId: string, message: Omit<Message, 'id' | 'sender' | 'timestamp'>) => void;
+    currentUser: User;
+    users: User[];
+    posts: Post[];
+    onViewProfile: (user: User) => void;
+    onSelectPost: (post: Post) => void;
+    onInitiateCall: (user: User) => void;
+    allStickers: string[];
+    onSaveSticker: (stickerUrl: string) => void;
+    onForwardMessage: (message: Message) => void;
 }
 
-const ChatListItem: React.FC<{ chat: Chat; isActive: boolean; onSelect: () => void }> = ({ chat, isActive, onSelect }) => (
-    <button onClick={onSelect} className={`w-full text-left p-3 rounded-lg transition-colors ${isActive ? 'bg-primary-light' : 'hover:bg-gray-100'}`}>
-        <div className="font-bold text-text-primary">{chat.seller}</div>
-        <div className="text-sm text-text-secondary truncate">{chat.postTitle || 'Direct Message'}</div>
-        <div className="text-xs text-text-secondary mt-1 flex justify-between">
-            <span className="truncate max-w-[80%]">{chat.lastMessage}</span>
-            <span>{chat.lastMessageTimestamp}</span>
-        </div>
-    </button>
-);
+const timeAgo = (isoDate: string): string => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    const now = new Date();
+    const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
 
-const TransactionHistoryPane: React.FC<{ 
-    transactions: Transaction[], 
-    onSelectTransaction: (t: Transaction) => void,
-    isCollapsed: boolean,
-    onToggle: () => void,
-}> = ({ transactions, onSelectTransaction, isCollapsed, onToggle }) => (
-    <div className={`transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-full md:w-1/3 md:max-w-xs'}`}>
-        <div className="w-full flex flex-col h-full bg-gray-50 border-l border-gray-200">
-            <div className="p-2 md:p-4 border-b border-gray-200 flex items-center justify-between">
-                {!isCollapsed && <h2 className="font-bold text-md md:text-lg text-text-primary">History</h2>}
-                <button onClick={onToggle} className="p-2 rounded-full hover:bg-gray-200" title={isCollapsed ? "Show History" : "Hide History"}>
-                    <ChevronLeftIcon className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-                </button>
-            </div>
-             {!isCollapsed && (
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                    {transactions.length > 0 ? transactions.map(t => (
-                        <button key={t.id} onClick={() => onSelectTransaction(t)} className="w-full text-left p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                            <p className="font-semibold text-sm text-text-primary truncate">{t.item}</p>
-                            <div className="text-xs text-text-secondary mt-1 flex justify-between">
-                                <span>{t.id}</span>
-                                <span className="font-medium">${t.amount.toFixed(2)}</span>
-                            </div>
-                        </button>
-                    )) : (
-                        <p className="text-sm text-center text-text-secondary p-4">No transactions with this user.</p>
-                    )}
+    if (seconds < 5) return "Just now";
+    
+    const intervals = [
+        { label: 'year', seconds: 31536000 },
+        { label: 'month', seconds: 2592000 },
+        { label: 'day', seconds: 86400 },
+        { label: 'hour', seconds: 3600 },
+        { label: 'minute', seconds: 60 }
+    ];
+
+    for (const interval of intervals) {
+        const count = Math.floor(seconds / interval.seconds);
+        if (count >= 1) {
+            return `${count} ${interval.label}${count !== 1 ? 's' : ''} ago`;
+        }
+    }
+    return "Just now";
+};
+
+
+const ChatListItem: React.FC<{ 
+    chat: Chat; 
+    isActive: boolean; 
+    onSelect: () => void;
+    otherUser?: User;
+    onViewProfile: (user: User) => void;
+}> = ({ chat, isActive, onSelect, otherUser, onViewProfile }) => {
+    
+    const handleProfileClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent the chat from being selected
+        if (otherUser) {
+            onViewProfile(otherUser);
+        }
+    };
+
+    return (
+        <div onClick={onSelect} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()} className={`w-full text-left p-3 rounded-lg transition-colors flex space-x-3 items-center cursor-pointer ${isActive ? 'bg-primary-light dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}>
+            <button onClick={handleProfileClick} className="flex-shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary">
+                {otherUser?.avatarUrl ? (
+                    <img src={otherUser.avatarUrl} alt={otherUser.name} className="w-12 h-12 rounded-full object-cover"/>
+                ) : (
+                    <UserCircleIcon className="w-12 h-12 text-gray-400" />
+                )}
+            </button>
+            <div className="flex-1 overflow-hidden">
+                <div className="flex justify-between items-baseline">
+                    <button onClick={handleProfileClick} className="font-bold text-text-primary dark:text-dark-text-primary hover:underline truncate">{otherUser?.name || 'Unknown User'}</button>
+                    <span className="text-xs text-text-secondary dark:text-dark-text-secondary flex-shrink-0 ml-2">{timeAgo(chat.lastMessageTimestamp)}</span>
                 </div>
-             )}
+                <div className="text-sm text-text-secondary dark:text-dark-text-secondary truncate">{chat.postTitle || chat.transactionId ? `Re: ${chat.postTitle}` : 'Direct Message'}</div>
+                <div className="text-xs text-text-secondary dark:text-dark-text-secondary mt-1 truncate max-w-[95%]">
+                    {chat.lastMessage}
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-const ConversationView: React.FC<{ chat: Chat; onSendMessage: (chatId: string, message: string) => void; onBack?: () => void; onToggleHistory?: () => void }> = ({ chat, onSendMessage, onBack, onToggleHistory }) => {
-    const [message, setMessage] = useState('');
+const ConversationView: React.FC<{ 
+    chat: Chat; 
+    currentUser: User;
+    users: User[];
+    onSendMessage: (chatId: string, message: Omit<Message, 'id' | 'sender' | 'timestamp'>) => void;
+    onBack?: () => void; 
+    otherUser?: User;
+    post?: Post;
+    onViewProfile: (user: User) => void;
+    onSelectPost: (post: Post) => void;
+    onInitiateCall: (user: User) => void;
+    allStickers: string[];
+    onSaveSticker: (stickerUrl: string) => void;
+    onForwardMessage: (message: Message) => void;
+}> = ({ chat, currentUser, users, onSendMessage, onBack, otherUser, post, onViewProfile, onSelectPost, onInitiateCall, allStickers, onSaveSticker, onForwardMessage }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,71 +108,99 @@ const ConversationView: React.FC<{ chat: Chat; onSendMessage: (chatId: string, m
 
     useEffect(scrollToBottom, [chat.messages]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (message.trim() && chat.id) {
-            onSendMessage(chat.id, message.trim());
-            setMessage('');
+    const handleSendMessage = (messageContent: Omit<Message, 'id' | 'sender' | 'timestamp' | 'replyTo'>) => {
+        let contentWithReply: Omit<Message, 'id' | 'sender' | 'timestamp'> = { ...messageContent };
+        if (replyingTo) {
+            contentWithReply.replyTo = {
+                id: replyingTo.id,
+                sender: replyingTo.sender,
+                contentPreview: replyingTo.text ? replyingTo.text.substring(0, 50) + '...' : (replyingTo.stickerUrl ? 'Sticker' : 'Voice Note')
+            };
         }
+        onSendMessage(chat.id, contentWithReply);
+        setReplyingTo(null);
     };
     
+    const canCall = useMemo(() => {
+        if (!otherUser) return false;
+        const otherUserFull = users.find(u => u.id === otherUser.id);
+        if (!otherUserFull) return false;
+        return currentUser.followingIds.includes(otherUser.id) || otherUserFull.followingIds.includes(currentUser.id);
+    }, [currentUser, otherUser, users]);
+
     return (
-        <div className="w-full flex flex-col h-full bg-white">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+        <div className="w-full flex flex-col h-full bg-white dark:bg-dark-surface">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center space-x-3 overflow-hidden">
                     {onBack && (
-                        <button onClick={onBack} className="md:hidden p-2 rounded-full hover:bg-gray-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                            </svg>
+                        <button onClick={onBack} className="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <ChevronLeftIcon className="w-6 h-6" />
                         </button>
                     )}
-                    <div>
-                        <h2 className="font-bold text-lg text-text-primary">{chat.seller}</h2>
-                        <p className="text-sm text-text-secondary truncate">{chat.postTitle || 'Direct Message'}</p>
+                    
+                    <button onClick={() => otherUser && onViewProfile(otherUser)} className="flex-shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                        {otherUser?.avatarUrl ? (
+                            <img src={otherUser.avatarUrl} alt={otherUser.name} className="w-10 h-10 rounded-full object-cover"/>
+                        ) : (
+                            <UserCircleIcon className="w-10 h-10 text-gray-400" />
+                        )}
+                    </button>
+                    
+                    <div className="overflow-hidden">
+                         <button onClick={() => otherUser && onViewProfile(otherUser)} className="font-bold text-lg text-text-primary dark:text-dark-text-primary hover:underline truncate block text-left">
+                            {otherUser?.name || 'Unknown User'}
+                        </button>
+                        {post ? (
+                            <button onClick={() => onSelectPost(post)} className="text-sm text-primary dark:text-indigo-400 hover:underline truncate block text-left" title={post.title}>
+                                {post.title}
+                            </button>
+                        ) : chat.transactionId ? (
+                            <p className="text-sm text-text-secondary dark:text-dark-text-secondary truncate" title={chat.postTitle}>
+                                Re: {chat.postTitle}
+                            </p>
+                        ) : (
+                            <p className="text-sm text-text-secondary dark:text-dark-text-secondary text-left">Direct Message</p>
+                        )}
                     </div>
                 </div>
-                {onToggleHistory && (
-                     <button onClick={onToggleHistory} className="md:hidden p-2 rounded-full hover:bg-gray-100">
-                        <ClockIcon className="w-6 h-6 text-gray-500" />
+                <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => otherUser && onInitiateCall(otherUser)} 
+                        disabled={!canCall} 
+                        title={canCall ? `Call ${otherUser?.name}` : "At least one of you must follow the other to start a call"}
+                        className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <PhoneIcon className="w-6 h-6" />
                     </button>
-                )}
+                </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                {chat.messages.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`p-3 rounded-lg max-w-md shadow-sm ${msg.sender === 'me' ? 'bg-primary text-white' : 'bg-white text-text-primary'}`}>
-                            <p className="text-sm">{msg.text}</p>
-                            <span className={`text-xs mt-1 block text-right ${msg.sender === 'me' ? 'text-indigo-200' : 'text-text-secondary'}`}>{msg.timestamp}</span>
-                        </div>
-                    </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 dark:bg-dark-background">
+                {chat.messages.map((msg) => (
+                    <ChatMessage 
+                        key={msg.id}
+                        message={msg}
+                        currentUser={currentUser}
+                        onReply={() => setReplyingTo(msg)}
+                        onForward={() => onForwardMessage(msg)}
+                        onSaveSticker={onSaveSticker}
+                    />
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 border-t border-gray-200 bg-white">
-                <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 px-4 py-2 border rounded-full bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <button type="submit" className="p-2 bg-primary text-white rounded-full hover:bg-primary-hover transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                          <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086L2.279 16.76a.75.75 0 00.95.826l16-5.333a.75.75 0 000-1.418l-16-5.333z" />
-                        </svg>
-                    </button>
-                </form>
-            </div>
+            <ChatInput 
+                onSubmit={handleSendMessage}
+                replyingTo={replyingTo}
+                onClearReply={() => setReplyingTo(null)}
+                allStickers={allStickers}
+                savedStickers={currentUser.savedStickers || []}
+            />
         </div>
     );
 };
 
-export const ChatPage: React.FC<ChatPageProps> = ({ chats, activeChatId, onSelectChat, onSendMessage, allTransactions, onSelectTransaction }) => {
+export const ChatPage: React.FC<ChatPageProps> = (props) => {
+    const { chats, activeChatId, onSelectChat, currentUser, users, posts, onViewProfile } = props;
     const [selectedChatIdForMobile, setSelectedChatIdForMobile] = useState<string | null>(null);
-    const [showHistoryMobile, setShowHistoryMobile] = useState(false);
-    const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
     
     const activeChat = chats.find(c => c.id === activeChatId);
     
@@ -140,72 +209,98 @@ export const ChatPage: React.FC<ChatPageProps> = ({ chats, activeChatId, onSelec
         onSelectChat(chats[0].id);
       }
     }, [activeChatId, chats, onSelectChat]);
-
-    const relevantTransactions = useMemo(() => {
-        if (!activeChat) return [];
-        return allTransactions.filter(t => 
-            (t.buyer === activeChat.buyer && t.seller === activeChat.seller) ||
-            (t.buyer === activeChat.seller && t.seller === activeChat.buyer)
-        ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [activeChat, allTransactions]);
     
+    const { otherUser, post } = useMemo(() => {
+        if (!activeChat) return { otherUser: undefined, post: undefined };
+        
+        const otherUserName = activeChat.buyer === currentUser.name ? activeChat.seller : activeChat.buyer;
+        const user = users.find(u => u.name === otherUserName);
+        const p = activeChat.postId ? posts.find(p => p.id === activeChat.postId) : undefined;
+
+        return { otherUser: user, post: p };
+    }, [activeChat, currentUser, users, posts]);
+
     const handleSelectChatForMobile = (chatId: string) => {
         onSelectChat(chatId);
         setSelectedChatIdForMobile(chatId);
-        setShowHistoryMobile(false); // Reset history view on new chat select
     };
 
     return (
-        <div className="flex h-full bg-surface overflow-hidden">
+        <div className="flex h-full bg-surface dark:bg-dark-surface overflow-hidden">
             {/* Mobile View */}
             <div className="md:hidden w-full h-full">
                 {!selectedChatIdForMobile ? (
-                    <div className="w-full border-r border-gray-200 flex flex-col h-full">
-                         <div className="p-4 border-b border-gray-200">
-                            <h1 className="text-xl font-bold text-text-primary">My Chats</h1>
+                    <div className="w-full border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+                         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h1 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">My Chats</h1>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                            {chats.map(chat => (
-                                <ChatListItem key={chat.id} chat={chat} isActive={chat.id === activeChatId} onSelect={() => handleSelectChatForMobile(chat.id)} />
-                            ))}
+                            {chats.map(chat => {
+                                const otherUserName = chat.buyer === currentUser.name ? chat.seller : chat.buyer;
+                                const otherUserObj = users.find(u => u.name === otherUserName);
+                                return (
+                                    <ChatListItem 
+                                      key={chat.id} 
+                                      chat={chat} 
+                                      isActive={chat.id === activeChatId} 
+                                      onSelect={() => handleSelectChatForMobile(chat.id)}
+                                      otherUser={otherUserObj}
+                                      onViewProfile={onViewProfile}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 ) : (
                     activeChat && (
-                        showHistoryMobile 
-                        ? <TransactionHistoryPane transactions={relevantTransactions} onSelectTransaction={onSelectTransaction} isCollapsed={false} onToggle={() => setShowHistoryMobile(false)} />
-                        : <ConversationView chat={activeChat} onSendMessage={onSendMessage} onBack={() => setSelectedChatIdForMobile(null)} onToggleHistory={() => setShowHistoryMobile(prev => !prev)} />
+                        <ConversationView 
+                              {...props}
+                              chat={activeChat} 
+                              onBack={() => setSelectedChatIdForMobile(null)} 
+                              otherUser={otherUser}
+                              post={post}
+                           />
                     )
                 )}
             </div>
 
             {/* Desktop View */}
-            <div className="hidden md:flex w-1/3 border-r border-gray-200 flex-col">
-                <div className="p-4 border-b border-gray-200">
-                    <h1 className="text-xl font-bold text-text-primary">My Chats</h1>
+            <div className="hidden md:flex w-1/3 border-r border-gray-200 dark:border-gray-700 flex-col">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h1 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">My Chats</h1>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                    {chats.map(chat => (
-                        <ChatListItem key={chat.id} chat={chat} isActive={chat.id === activeChatId} onSelect={() => onSelectChat(chat.id)} />
-                    ))}
+                    {chats.map(chat => {
+                        const otherUserName = chat.buyer === currentUser.name ? chat.seller : chat.buyer;
+                        const otherUserObj = users.find(u => u.name === otherUserName);
+                        return (
+                             <ChatListItem 
+                                key={chat.id} 
+                                chat={chat} 
+                                isActive={chat.id === activeChatId} 
+                                onSelect={() => onSelectChat(chat.id)}
+                                otherUser={otherUserObj}
+                                onViewProfile={onViewProfile}
+                            />
+                        );
+                    })}
                 </div>
             </div>
             <div className="hidden md:flex flex-1 h-full">
                 {activeChat ? (
                     <div className="flex flex-1">
                         <div className="flex-1 flex flex-col">
-                            <ConversationView chat={activeChat} onSendMessage={onSendMessage} />
+                            <ConversationView 
+                                {...props}
+                                chat={activeChat} 
+                                otherUser={otherUser}
+                                post={post}
+                            />
                         </div>
-                        <TransactionHistoryPane 
-                            transactions={relevantTransactions} 
-                            onSelectTransaction={onSelectTransaction}
-                            isCollapsed={isHistoryCollapsed}
-                            onToggle={() => setIsHistoryCollapsed(prev => !prev)}
-                        />
                     </div>
                 ) : (
                     <div className="flex-1 flex items-center justify-center">
-                        <p className="text-text-secondary">Select a chat to start messaging.</p>
+                        <p className="text-text-secondary dark:text-dark-text-secondary">Select a chat to start messaging.</p>
                     </div>
                 )}
             </div>

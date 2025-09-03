@@ -1,6 +1,6 @@
-
 import React from 'react';
-import { HomeIcon, DocumentReportIcon, UsersIcon, CogIcon, ShieldExclamationIcon, ChatBubbleLeftRightIcon, View, UserRole, ChatBubbleOvalLeftEllipsisIcon } from '../types';
+import { HomeIcon, DocumentReportIcon, UsersIcon, CogIcon, ShieldExclamationIcon, ChatBubbleLeftRightIcon, XMarkIcon } from '../types';
+import type { View, UserRole } from '../types';
 
 interface NavLinkProps {
   icon: React.ReactNode;
@@ -33,33 +33,32 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, role, isMobileOpen, onCloseMobile }) => {
+  const handleLinkClick = (view: View) => {
+    onNavigate(view);
+    onCloseMobile();
+  };
+  
   const adminLinks = (
     <>
-      <NavLink icon={<HomeIcon className="w-6 h-6" />} label="Dashboard" active={activeView === 'Dashboard'} onClick={() => onNavigate('Dashboard')} />
-      <NavLink icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Forum" active={activeView === 'Forum'} onClick={() => onNavigate('Forum')} />
-      <NavLink icon={<DocumentReportIcon className="w-6 h-6" />} label="Transactions" active={activeView === 'Transactions'} onClick={() => onNavigate('Transactions')} />
-      <NavLink icon={<ShieldExclamationIcon className="w-6 h-6" />} label="Disputes" active={activeView === 'Disputes'} onClick={() => onNavigate('Disputes')} />
-      <NavLink icon={<UsersIcon className="w-6 h-6" />} label="Users" active={activeView === 'Users'} onClick={() => onNavigate('Users')} />
-      <NavLink icon={<CogIcon className="w-6 h-6" />} label="Settings" active={activeView === 'Settings'} onClick={() => onNavigate('Settings')} />
+      <NavLink icon={<HomeIcon className="w-6 h-6" />} label="Dashboard" active={activeView === 'Dashboard'} onClick={() => handleLinkClick('Dashboard')} />
+      <NavLink icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Forum" active={activeView === 'Forum'} onClick={() => handleLinkClick('Forum')} />
+      <NavLink icon={<DocumentReportIcon className="w-6 h-6" />} label="Transaction Management" active={activeView === 'Transaction Management'} onClick={() => handleLinkClick('Transaction Management')} />
+      <NavLink icon={<CogIcon className="w-6 h-6" />} label="Settings" active={activeView === 'Settings'} onClick={() => handleLinkClick('Settings')} />
     </>
   );
 
-  const memberLinks = (
-    <>
-        <NavLink icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Forum" active={activeView === 'Forum'} onClick={() => onNavigate('Forum')} />
-        <NavLink icon={<ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6" />} label="My Chats" active={activeView === 'My Chats'} onClick={() => onNavigate('My Chats')} />
-    </>
-  );
-  
   const SidebarContent = () => (
     <div className={`bg-gray-800 text-white flex flex-col p-4 space-y-2 h-full w-64`}>
-       <div className={`p-4 text-center border-b border-gray-700 min-h-[65px] flex items-center justify-start w-full`}>
+       <div className={`p-4 text-center border-b border-gray-700 min-h-[65px] flex items-center justify-between w-full`}>
         <h2 className={`text-xl font-bold text-white whitespace-nowrap`}>
           Marketplace OS
         </h2>
+        <button onClick={onCloseMobile} className="md:hidden p-1 text-gray-300 rounded-full hover:text-white hover:bg-gray-700 transition-colors" aria-label="Close sidebar">
+            <XMarkIcon className="w-6 h-6" />
+        </button>
       </div>
       <nav className="flex-1 mt-4 space-y-2 w-full">
-        {role === 'Admin' ? adminLinks : memberLinks}
+        {adminLinks}
       </nav>
       <div className={`p-4 border-t border-gray-700`}>
         <p className="text-sm text-gray-400 text-center">© 2024</p>
