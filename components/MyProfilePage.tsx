@@ -43,6 +43,8 @@ interface MyProfilePageProps {
   onTogglePostCommentRestriction: (postId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
+// Fix: Add onToggleSoldStatus to MyProfilePageProps
+  onToggleSoldStatus: (postId: string) => void;
 }
 
 type ProfileTab = 'Activity' | 'Transactions' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';

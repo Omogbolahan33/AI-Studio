@@ -35,6 +35,8 @@ interface ForumPageProps {
   onTogglePostCommentRestriction: (postId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
+// Fix: Add onToggleSoldStatus to ForumPageProps
+  onToggleSoldStatus: (postId: string) => void;
 }
 
 export const ForumPage: React.FC<ForumPageProps> = ({ posts, transactions, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, selectedPostId, onSelectPost, onClearSelectedPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {

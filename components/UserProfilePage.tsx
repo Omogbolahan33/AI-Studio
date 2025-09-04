@@ -44,6 +44,8 @@ interface UserProfilePageProps {
   onTogglePostCommentRestriction: (postId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
+// Fix: Add onToggleSoldStatus to UserProfilePageProps
+  onToggleSoldStatus: (postId: string) => void;
 }
 
 const ProfileStat: React.FC<{ value: string | number, label: string, icon: React.ReactNode }> = ({ value, label, icon }) => (
@@ -280,7 +282,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts
           case 'Topics':
               return userTopics.length > 0 ? (
                   <div className="space-y-4">
-                      {userTopics.map(post => <PostListItem key={post.id} post={post} users={users} currentUser={currentUser} categoryName="" onSelect={() => onSelectPost(post)} onViewProfile={onViewProfile} onLike={onLike} onDislike={onDislike} onTogglePinPost={onTogglePinPost} onFlagPost={onFlagPost} />)}
+                      {userTopics.map(post => <PostListItem key={post.id} post={post} isSold={false} users={users} currentUser={currentUser} categoryName="" onSelect={() => onSelectPost(post)} onViewProfile={onViewProfile} onLike={onLike} onDislike={onDislike} onTogglePinPost={onTogglePinPost} onFlagPost={onFlagPost} />)}
                   </div>
               ) : <p className="text-center text-text-secondary py-8">This user hasn't posted any topics yet.</p>;
           case 'Adverts':

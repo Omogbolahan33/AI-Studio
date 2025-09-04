@@ -6,6 +6,7 @@ import { StarRating } from './StarRating';
 
 interface PostListItemProps {
   post: Post;
+  isSold: boolean;
   categoryName: string;
   users: User[];
   currentUser: User;
@@ -15,7 +16,6 @@ interface PostListItemProps {
   onDislike: (postId: string) => void;
   onTogglePinPost: (postId: string) => void;
   onFlagPost: (postId: string) => void;
-  isSold?: boolean;
 }
 
 const ActionButton: React.FC<{
@@ -65,7 +65,7 @@ const timeAgo = (isoDate: string): string => {
     return "Just now";
 };
 
-export const PostListItem: React.FC<PostListItemProps> = ({ post, categoryName, users, currentUser, onSelect, onViewProfile, onLike, onDislike, onTogglePinPost, onFlagPost, isSold }) => {
+export const PostListItem: React.FC<PostListItemProps> = ({ post, isSold, categoryName, users, currentUser, onSelect, onViewProfile, onLike, onDislike, onTogglePinPost, onFlagPost }) => {
   const author = users.find(u => u.name === post.author);
   const isAuthor = currentUser.name === post.author;
   const hasLiked = post.likedBy.includes(currentUser.id);
@@ -203,62 +203,23 @@ export const PostListItem: React.FC<PostListItemProps> = ({ post, categoryName, 
                 </p>
 
                 {post.isAdvert && post.price && (
-                    <div className="text-2xl font-bold text-secondary text-right mt-4">
-                        ₦{post.price.toLocaleString()}
+                    <div className="mt-4">
+                        <p className="text-2xl font-bold text-primary">₦{post.price.toLocaleString()}</p>
                     </div>
                 )}
             </div>
-      
-            <div className="mt-4 flex items-center justify-between border-t dark:border-gray-700 pt-2">
-                 <div className="flex items-center space-x-2">
-                    {isAdmin && (
-                        <ActionButton
-                            icon={<PinIcon className={`w-5 h-5 ${isPinned ? 'text-yellow-600' : ''}`} />}
-                            label={isPinned ? 'Unpin' : 'Pin'}
-                            onClick={(e) => handleActionClick(e, () => onTogglePinPost(post.id))}
-                            isActive={isPinned}
-                            activeClasses="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                        />
-                    )}
-                    {!isAuthor && (
-                        <ActionButton
-                            icon={<FlagIcon className="w-5 h-5" />}
-                            label={hasFlagged ? 'Flagged' : 'Flag'}
-                            onClick={(e) => handleActionClick(e, () => onFlagPost(post.id))}
-                            isActive={hasFlagged}
-                            disabled={hasFlagged}
-                            activeClasses="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        />
-                    )}
+
+            <div className="border-t dark:border-gray-700 mt-4 pt-3 flex justify-between items-center">
+                <div className="flex items-center space-x-1">
+                    <ActionButton icon={<HandThumbUpIcon className="w-5 h-5" />} label="Like" count={post.likedBy.length} onClick={(e) => handleActionClick(e, () => onLike(post.id))} disabled={isAuthor} isActive={hasLiked} />
+                    <ActionButton icon={<HandThumbDownIcon className="w-5 h-5" />} label="Dislike" count={post.dislikedBy.length} onClick={(e) => handleActionClick(e, () => onDislike(post.id))} disabled={isAuthor} isActive={hasDisliked} activeClasses="bg-red-100 text-red-600" />
+                    <ActionButton icon={<ChatBubbleBottomCenterTextIcon className="w-5 h-5" />} label="Comment" count={post.comments.length} onClick={onSelect} />
                 </div>
-                <div className="flex items-center space-x-2">
-                    <ActionButton
-                        icon={<ChatBubbleBottomCenterTextIcon className="w-5 h-5" />}
-                        label="Comments"
-                        count={post.comments.length}
-                        onClick={(e) => handleActionClick(e, onSelect)}
-                    />
-                    <ActionButton
-                        icon={<HandThumbUpIcon className="w-5 h-5" />}
-                        label="Like"
-                        count={post.likedBy.length}
-                        onClick={(e) => handleActionClick(e, () => onLike(post.id))}
-                        isActive={hasLiked}
-                        disabled={isAuthor}
-                    />
-                    <ActionButton
-                        icon={<HandThumbDownIcon className="w-5 h-5" />}
-                        label="Dislike"
-                        count={post.dislikedBy.length}
-                        onClick={(e) => handleActionClick(e, () => onDislike(post.id))}
-                        isActive={hasDisliked}
-                        disabled={isAuthor}
-                    />
-                    <ActionButton
-                        icon={<ArrowUpTrayIcon className="w-5 h-5" />}
-                        label="Share"
-                        onClick={handleShare}
-                    />
+                <div className="flex items-center space-x-1">
+                    {isAdmin && (
+                         <ActionButton icon={<PinIcon className="w-5 h-5" />} label="Pin" onClick={(e) => handleActionClick(e, () => onTogglePinPost(post.id))} isActive={isPinned} activeClasses="bg-yellow-100 text-yellow-600" />
+                    )}
+                     <ActionButton icon={<ArrowUpTrayIcon className="w-5 h-5" />} label="Share" onClick={handleShare} />
                 </div>
             </div>
         </div>

@@ -152,6 +152,7 @@ export interface Post {
     pinnedAt?: string;
     flaggedBy: string[];
     isCommentingRestricted: boolean;
+    isSold: boolean;
 }
 
 export interface Message {

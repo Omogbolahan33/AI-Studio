@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -204,6 +207,14 @@ export const App: React.FC = () => {
             : t
         ));
         
+        const postIdsToMarkSold = transactionsToComplete
+            .map(t => t.postId)
+            .filter((postId): postId is string => !!postId);
+        
+        setPosts(prev => prev.map(post => 
+            postIdsToMarkSold.includes(post.id) ? { ...post, isSold: true } : post
+        ));
+
         const newNotifications: Notification[] = [];
         transactionsToComplete.forEach(t => {
             const buyer = users.find(u => u.name === t.buyer);
@@ -698,6 +709,7 @@ export const App: React.FC = () => {
           condition: data.condition,
           flaggedBy: [],
           isCommentingRestricted: false,
+          isSold: false,
         };
         setPosts(prevPosts => [newPost, ...prevPosts]);
         createActivityLogEntry('Created Post', `"${newPost.title}"`);
@@ -823,6 +835,20 @@ export const App: React.FC = () => {
         }
         return post;
     }));
+  };
+
+  const handleToggleSoldStatus = (postId: string) => {
+    if (!loggedInUser) return;
+    setPosts(prevPosts =>
+      prevPosts.map(post => {
+        if (post.id === postId && post.author === loggedInUser.name) {
+          const newSoldStatus = !post.isSold;
+          setToast({ message: newSoldStatus ? 'Advert marked as sold.' : 'Advert marked as available.', type: 'success' });
+          return { ...post, isSold: newSoldStatus };
+        }
+        return post;
+      })
+    );
   };
 
   const handleAddComment = (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video' }, parentId: string | null = null) => {
@@ -1328,6 +1354,33 @@ export const App: React.FC = () => {
     setToast({ message: wasPinned ? "Post unpinned." : "Post pinned for 24 hours.", type: 'success' });
   };
 
+  const handleAcceptItem = (transactionId: string) => {
+    if (!loggedInUser) return;
+
+    let transactionToComplete: Transaction | undefined;
+    
+    setTransactions(prev =>
+        prev.map(t => {
+            if (t.id === transactionId && t.status === 'Delivered' && t.buyer === loggedInUser.name) {
+                transactionToComplete = { ...t, status: 'Completed', completedAt: new Date().toISOString() };
+                return transactionToComplete;
+            }
+            return t;
+        })
+    );
+
+    if (transactionToComplete) {
+        if (transactionToComplete.postId) {
+            setPosts(prevPosts =>
+                prevPosts.map(p => (p.id === transactionToComplete!.postId ? { ...p, isSold: true } : p))
+            );
+        }
+        setToast({ message: `Item accepted. Transaction ${transactionId} completed.`, type: 'success' });
+        setSelectedTransaction(null);
+        handleOpenReviewModal(transactionToComplete);
+    }
+};
+
   // Fix: Added the missing return statement with the main JSX for the application.
   // RENDER LOGIC
   if (isMaintenanceMode && loggedInUser?.role !== 'Admin' && loggedInUser?.role !== 'Super Admin') {
@@ -1422,6 +1475,7 @@ export const App: React.FC = () => {
           onTogglePostCommentRestriction={handleTogglePostCommentRestriction}
           onLikeComment={handleLikeComment}
           onDislikeComment={handleDislikeComment}
+          onToggleSoldStatus={handleToggleSoldStatus}
         />;
       case 'My Chats':
         return <ChatPage 
@@ -1470,6 +1524,7 @@ export const App: React.FC = () => {
           onTogglePostCommentRestriction={handleTogglePostCommentRestriction}
           onLikeComment={handleLikeComment}
           onDislikeComment={handleDislikeComment}
+          onToggleSoldStatus={handleToggleSoldStatus}
         />;
       default:
         return <div>Not implemented</div>
@@ -1481,7 +1536,7 @@ export const App: React.FC = () => {
       {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       {confirmation && <ConfirmationModal isOpen={!!confirmation} onClose={() => setConfirmation(null)} {...confirmation} />}
       {selectedDispute && <DisputeModal dispute={selectedDispute} transaction={transactions.find(t => t.id === selectedDispute.transactionId)} currentUser={loggedInUser} users={users} onClose={() => setSelectedDispute(null)} onResolve={handleResolveDispute} onSendMessage={() => {}} />}
-      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={()=>{}} onMarkAsShipped={()=>{}} onAcceptItem={()=>{}} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={() => {}} />}
+      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={()=>{}} onMarkAsShipped={()=>{}} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={() => {}} />}
       {userToBan && <BanUserModal user={userToBan} onClose={() => setUserToBan(null)} onConfirm={handleConfirmBan} />}
       {reviewModalState && <ReviewModal userToReview={users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer))!} onClose={() => setReviewModalState(null)} onSubmit={(rating, comment) => { const userToReview = users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer)); if(userToReview) handleAddReview(userToReview.id, rating, comment, reviewModalState.transaction.id); setReviewModalState(null); }} />}
       {policyModal && <PolicyModal title={policyModal.title} content={policyModal.content} onClose={() => setPolicyModal(null)} />}
@@ -1524,6 +1579,7 @@ export const App: React.FC = () => {
         onTogglePostCommentRestriction={handleTogglePostCommentRestriction}
         onLikeComment={handleLikeComment}
         onDislikeComment={handleDislikeComment}
+        onToggleSoldStatus={handleToggleSoldStatus}
       />}
       
       { isAdminOrSuperAdmin ? (

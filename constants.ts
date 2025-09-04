@@ -55,6 +55,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Like New',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST002',
@@ -92,6 +93,7 @@ export const mockPosts: Post[] = [
         dislikedBy: [],
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST003',
@@ -107,6 +109,7 @@ export const mockPosts: Post[] = [
         dislikedBy: [],
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST004',
@@ -123,6 +126,7 @@ export const mockPosts: Post[] = [
         pinnedAt: timeAgo(12, 'h'),
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST005',
@@ -141,6 +145,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Good',
         flaggedBy: ['user-07'],
         isCommentingRestricted: false,
+        isSold: false,
     },
     // Added Posts to match transactions
     {
@@ -160,6 +165,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Good',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: true,
     },
     {
         id: 'POST007',
@@ -178,6 +184,7 @@ export const mockPosts: Post[] = [
         condition: 'New',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST008',
@@ -196,6 +203,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Like New',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST009',
@@ -214,6 +222,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Fair',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
     {
         id: 'POST010',
@@ -232,6 +241,7 @@ export const mockPosts: Post[] = [
         condition: 'Used - Like New',
         flaggedBy: [],
         isCommentingRestricted: false,
+        isSold: false,
     },
 ];
 
