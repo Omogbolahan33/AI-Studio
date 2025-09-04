@@ -60,6 +60,33 @@
       .animate-float {
         animation: float 6s ease-in-out infinite;
       }
+      .mention {
+        background-color: #e0e7ff; /* primary-light */
+        color: #4f46e5; /* primary */
+        font-weight: bold;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .dark .mention {
+        background-color: #3730a3; /* darker primary */
+        color: #c7d2fe;
+      }
+      .reply-container {
+        padding-left: 20px;
+        margin-left: 20px;
+        position: relative;
+      }
+      .reply-thread-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #e5e7eb; /* gray-200 */
+      }
+       .dark .reply-thread-line {
+        background-color: #374151; /* gray-700 */
+      }
     </style>
   </head>
   <body class="bg-background text-text-primary dark:bg-dark-background dark:text-dark-text-primary transition-colors duration-300">

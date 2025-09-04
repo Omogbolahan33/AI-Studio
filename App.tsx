@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -24,6 +26,8 @@ import { CallTypeSelectionModal } from './components/CallTypeSelectionModal';
 import { ForwardMessageModal } from './components/ForwardMessageModal';
 import { AddBankAccountModal } from './components/AddBankAccountModal';
 import { AddAddressModal } from './components/AddAddressModal';
+import { MaintenancePage } from './components/MaintenancePage';
+import { MaintenanceBanner } from './components/MaintenanceBanner';
 import { ChartBarIcon, DocumentReportIcon, ShieldExclamationIcon, ClockIcon, FlagIcon } from './types';
 import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount, DisputeMessage, FileAttachment } from './types';
 import { mockTransactions, mockDisputes, mockPosts, mockChats, mockUsers, mockCategories, mockNotifications, mockActivityLog, mockStickers } from './constants';
@@ -140,6 +144,7 @@ const App: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [isAddBankAccountModalOpen, setIsAddBankAccountModalOpen] = useState(false);
   const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
 
   const chatInModal = useMemo(() => chats.find(c => c.id === chatIdInModal), [chats, chatIdInModal]);
@@ -691,6 +696,7 @@ const App: React.FC = () => {
           brand: data.brand,
           condition: data.condition,
           flaggedBy: [],
+          isCommentingRestricted: false,
         };
         setPosts(prevPosts => [newPost, ...prevPosts]);
         createActivityLogEntry('Created Post', `"${newPost.title}"`);
@@ -805,8 +811,31 @@ const App: React.FC = () => {
     }));
   };
 
-  const handleAddComment = (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }) => {
+  const handleTogglePostCommentRestriction = (postId: string) => {
+    if (!loggedInUser || (loggedInUser.role !== 'Admin' && loggedInUser.role !== 'Super Admin')) return;
+    
+    setPosts(prevPosts => prevPosts.map(post => {
+        if (post.id === postId) {
+            const isRestricted = !post.isCommentingRestricted;
+            setToast({ message: isRestricted ? "Comments have been locked for this post." : "Comments have been unlocked for this post.", type: 'success'});
+            return { ...post, isCommentingRestricted: isRestricted };
+        }
+        return post;
+    }));
+  };
+
+  const handleAddComment = (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video' }, parentId: string | null = null) => {
     if (!loggedInUser) return;
+
+    const postToUpdate = posts.find(p => p.id === postId);
+    if(!postToUpdate) return;
+    
+    const isCommentingDisabled = postToUpdate.isCommentingRestricted && loggedInUser.role === 'Member';
+    if(isCommentingDisabled) {
+        setToast({ message: "Commenting on this post is restricted.", type: 'error'});
+        return;
+    }
+
     const newComment: Comment = {
       id: `C${Math.random().toString(36).substring(2, 9)}`,
       author: loggedInUser.name,
@@ -815,47 +844,102 @@ const App: React.FC = () => {
       mediaUrl: commentData.mediaUrl,
       mediaType: commentData.mediaType,
       flaggedBy: [],
+      replies: [],
+      parentId,
+// FIX: Added missing properties 'likedBy' and 'dislikedBy' to the new comment object to resolve a TypeScript error.
+      likedBy: [],
+      dislikedBy: [],
     };
 
-    const post = posts.find(p => p.id === postId);
-    if (post && post.author !== loggedInUser.name) {
-        const postAuthor = users.find(u => u.name === post.author);
-        if (postAuthor) {
-            const commentNotification: Notification = {
-                id: `notif-${Date.now()}-${postAuthor.id}`,
-                userId: postAuthor.id,
-                actorId: loggedInUser.id,
-                type: 'comment',
-                content: `${loggedInUser.name} commented on your post: "${post.title}"`,
-                link: '#',
-                postId: post.id,
-                timestamp: new Date().toISOString(),
-                read: false,
-            };
-            setNotifications(prev => [commentNotification, ...prev]);
-        }
-    }
+    const addReplyToComment = (comments: Comment[]): Comment[] => {
+        return comments.map(comment => {
+            if (comment.id === parentId) {
+                return { ...comment, replies: [newComment, ...(comment.replies || [])] };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+                return { ...comment, replies: addReplyToComment(comment.replies) };
+            }
+            return comment;
+        });
+    };
 
-    setPosts(prevPosts => prevPosts.map(post => post.id === postId
-        ? { ...post, comments: [newComment, ...post.comments], lastActivityTimestamp: new Date().toISOString() }
-        : post
-    ));
+    setPosts(prevPosts => prevPosts.map(post => {
+        if (post.id === postId) {
+            const updatedPost = { ...post, lastActivityTimestamp: new Date().toISOString() };
+            if (parentId) {
+                updatedPost.comments = addReplyToComment(post.comments);
+            } else {
+                updatedPost.comments = [newComment, ...post.comments];
+            }
+
+            // Notifications
+            const mentionedUsernames = (commentData.content.match(/@(\w+)/g) || []).map(u => u.substring(1));
+            const participants = new Set<string>([post.author]);
+            if(parentId) {
+                const findParentAuthor = (comments: Comment[]): string | null => {
+                    for (const c of comments) {
+                        if (c.id === parentId) return c.author;
+                        if (c.replies) {
+                            const author = findParentAuthor(c.replies);
+                            if (author) return author;
+                        }
+                    }
+                    return null;
+                }
+                const parentAuthor = findParentAuthor(post.comments);
+                if(parentAuthor) participants.add(parentAuthor);
+            }
+            
+            mentionedUsernames.forEach(username => {
+                const user = users.find(u => u.username === username);
+                if (user) participants.add(user.name);
+            });
+            
+            participants.forEach(participantName => {
+                if (participantName !== loggedInUser.name) {
+                    const userToNotify = users.find(u => u.name === participantName);
+                    if (userToNotify) {
+                         const notif: Notification = {
+                            id: `notif-${Date.now()}-${userToNotify.id}`,
+                            userId: userToNotify.id,
+                            actorId: loggedInUser.id,
+                            type: mentionedUsernames.some(u => u === userToNotify.username) ? 'mention' : 'comment',
+                            content: mentionedUsernames.some(u => u === userToNotify.username) 
+                                ? `${loggedInUser.name} mentioned you in a comment on "${post.title}"`
+                                : `${loggedInUser.name} replied to a discussion on "${post.title}"`,
+                            link: '#', postId: post.id,
+                            timestamp: new Date().toISOString(), read: false,
+                         };
+                         setNotifications(prev => [notif, ...prev]);
+                    }
+                }
+            });
+
+            return updatedPost;
+        }
+        return post;
+    }));
     createActivityLogEntry('Commented on Post', `"${posts.find(p => p.id === postId)?.title}"`);
   };
 
   const handleEditComment = (postId: string, commentId: string, newContent: string) => {
     if (!loggedInUser) return;
+
+    const updateCommentRecursive = (comments: Comment[]): Comment[] => {
+      return comments.map(comment => {
+        if (comment.id === commentId && comment.author === loggedInUser.name) {
+          return { ...comment, content: newContent, editedTimestamp: new Date().toISOString() };
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          return { ...comment, replies: updateCommentRecursive(comment.replies) };
+        }
+        return comment;
+      });
+    };
+
     setPosts(posts.map(post => {
         if (post.id === postId) {
-            return {
-                ...post,
-                comments: post.comments.map(comment => {
-                    if (comment.id === commentId && comment.author === loggedInUser.name) {
-                        return { ...comment, content: newContent, editedTimestamp: new Date().toISOString() };
-                    }
-                    return comment;
-                })
-            };
+            return { ...post, comments: updateCommentRecursive(post.comments) };
         }
         return post;
     }));
@@ -863,18 +947,23 @@ const App: React.FC = () => {
 
   const handleDeleteComment = (postId: string, commentId: string) => {
     if (!loggedInUser) return;
-    const post = posts.find(p => p.id === postId);
-    const comment = post?.comments.find(c => c.id === commentId);
-    if (!comment) return;
-    if (comment.author !== loggedInUser.name && loggedInUser.role !== 'Admin' && loggedInUser.role !== 'Super Admin') return;
     
     setConfirmation({
         title: "Delete Comment",
         message: "Are you sure you want to delete this comment? This action cannot be undone.",
         onConfirm: () => {
+            const deleteCommentRecursive = (comments: Comment[]): Comment[] => {
+                return comments.filter(c => c.id !== commentId).map(c => {
+                    if (c.replies && c.replies.length > 0) {
+                        return { ...c, replies: deleteCommentRecursive(c.replies) };
+                    }
+                    return c;
+                });
+            };
+
             setPosts(prevPosts => prevPosts.map(p => {
                 if (p.id === postId) {
-                    return { ...p, comments: p.comments.filter(c => c.id !== commentId) };
+                    return { ...p, comments: deleteCommentRecursive(p.comments) };
                 }
                 return p;
             }));
@@ -885,6 +974,65 @@ const App: React.FC = () => {
     });
   };
   
+// FIX: Added handler functions for liking and disliking comments.
+  const handleLikeComment = (postId: string, commentId: string) => {
+    if (!loggedInUser) return;
+
+    const updateLikesRecursive = (comments: Comment[]): Comment[] => {
+      return comments.map(comment => {
+        if (comment.id === commentId) {
+          const hasLiked = comment.likedBy.includes(loggedInUser.id);
+          const hasDisliked = comment.dislikedBy.includes(loggedInUser.id);
+          
+          const newLikedBy = hasLiked ? comment.likedBy.filter(id => id !== loggedInUser.id) : [...comment.likedBy, loggedInUser.id];
+          const newDislikedBy = hasDisliked ? comment.dislikedBy.filter(id => id !== loggedInUser.id) : comment.dislikedBy;
+
+          return { ...comment, likedBy: newLikedBy, dislikedBy: newDislikedBy };
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          return { ...comment, replies: updateLikesRecursive(comment.replies) };
+        }
+        return comment;
+      });
+    };
+
+    setPosts(posts.map(post => {
+        if (post.id === postId) {
+            return { ...post, comments: updateLikesRecursive(post.comments) };
+        }
+        return post;
+    }));
+  };
+
+  const handleDislikeComment = (postId: string, commentId: string) => {
+    if (!loggedInUser) return;
+
+    const updateLikesRecursive = (comments: Comment[]): Comment[] => {
+      return comments.map(comment => {
+        if (comment.id === commentId) {
+          const hasLiked = comment.likedBy.includes(loggedInUser.id);
+          const hasDisliked = comment.dislikedBy.includes(loggedInUser.id);
+          
+          const newDislikedBy = hasDisliked ? comment.dislikedBy.filter(id => id !== loggedInUser.id) : [...comment.dislikedBy, loggedInUser.id];
+          const newLikedBy = hasLiked ? comment.likedBy.filter(id => id !== loggedInUser.id) : comment.likedBy;
+
+          return { ...comment, likedBy: newLikedBy, dislikedBy: newDislikedBy };
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          return { ...comment, replies: updateLikesRecursive(comment.replies) };
+        }
+        return comment;
+      });
+    };
+
+    setPosts(posts.map(post => {
+        if (post.id === postId) {
+            return { ...post, comments: updateLikesRecursive(post.comments) };
+        }
+        return post;
+    }));
+  };
+
   const handleRequestFollow = (userIdToFollow: string) => {
     if (!loggedInUser) return;
     const followNotification: Notification = {
@@ -1101,6 +1249,14 @@ const App: React.FC = () => {
         ? 'Profile picture updated successfully.'
         : 'Your settings have been updated successfully.';
     setToast({ message, type: 'success' });
+  };
+
+  const handleToggleMaintenanceMode = () => {
+    setIsMaintenanceMode(prev => {
+        const newState = !prev;
+        setToast({ message: `Maintenance mode has been ${newState ? 'enabled' : 'disabled'}.`, type: 'success' });
+        return newState;
+    });
   };
 
   const handleAddReview = (userId: string, rating: number, comment: string, transactionId?: string) => {
@@ -1598,10 +1754,14 @@ const App: React.FC = () => {
                 setActiveChatId(chat.id);
             }
           }
-      } else if ((notification.type === 'follow' || notification.type === 'follow_request') && notification.actorId) {
+      } else if ((notification.type === 'follow' || notification.type === 'follow_request' || notification.type === 'mention') && notification.actorId) {
           const actor = users.find(u => u.id === notification.actorId);
           if (actor) {
-              handleViewProfile(actor);
+              if (notification.postId) {
+                handleSelectPost(posts.find(p => p.id === notification.postId)!);
+              } else {
+                handleViewProfile(actor);
+              }
           }
       }
     } else { // Is a Chat
@@ -1674,6 +1834,10 @@ const App: React.FC = () => {
     return <LoginPage onLogin={handleLogin} error={loginError} onSwitchMode={setAuthMode} onSsoLogin={handleSsoLogin} />;
   }
   
+  if (isMaintenanceMode && loggedInUser.role === 'Member') {
+    return <MaintenancePage user={loggedInUser} onSignOut={handleSignOut} />;
+  }
+  
   const mainContent = () => {
     if (viewingProfileOfUser) {
       return <UserProfilePage 
@@ -1701,9 +1865,14 @@ const App: React.FC = () => {
         onFlagComment={handleFlagComment}
         onResolvePostFlag={handleResolvePostFlag}
         onResolveCommentFlag={handleResolveCommentFlag}
+        onAddComment={handleAddComment}
         onEditComment={handleEditComment}
         onDeleteComment={handleDeleteComment}
         onSetUserRole={handleSetUserRole}
+        onTogglePostCommentRestriction={handleTogglePostCommentRestriction}
+// FIX: Passed the missing onLikeComment and onDislikeComment props to UserProfilePage to resolve a TypeScript error.
+        onLikeComment={handleLikeComment}
+        onDislikeComment={handleDislikeComment}
       />
     }
 
@@ -1751,9 +1920,16 @@ const App: React.FC = () => {
           initialTab={initialTxMgmtTab}
         />;
       case 'Settings':
-        return <SettingsPage users={users} onViewProfile={handleViewProfile} />;
+        return <SettingsPage 
+                    users={users} 
+                    onViewProfile={handleViewProfile} 
+                    isMaintenanceMode={isMaintenanceMode}
+                    onToggleMaintenanceMode={handleToggleMaintenanceMode}
+                    currentUser={loggedInUser}
+                />;
       case 'Forum':
-        return <div className="p-4 sm:p-6"><ForumPage transactions={transactions} posts={posts.filter(p => !loggedInUser.blockedUserIds.includes(users.find(u => u.name === p.author)?.id || ''))} categories={categories} users={users} currentUser={loggedInUser} onInitiatePurchase={handleInitiatePurchase} onStartChat={(post) => handleStartChat({ post })} onCreatePost={handleCreatePost} onEditPost={handleEditPost} onDeletePost={handleDeletePost} onLike={handleLikePost} onDislike={handleDislikePost} onAddComment={handleAddComment} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onTogglePinPost={handleTogglePinPost} selectedPostId={selectedPostId} onSelectPost={(post) => setSelectedPostId(post.id)} onClearSelectedPost={() => setSelectedPostId(null)} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} /></div>;
+// FIX: Passed the missing onLikeComment and onDislikeComment props to ForumPage to resolve a TypeScript error.
+        return <div className="p-4 sm:p-6"><ForumPage transactions={transactions} posts={posts.filter(p => !loggedInUser.blockedUserIds.includes(users.find(u => u.name === p.author)?.id || ''))} categories={categories} users={users} currentUser={loggedInUser} onInitiatePurchase={handleInitiatePurchase} onStartChat={(post) => handleStartChat({ post })} onCreatePost={handleCreatePost} onEditPost={handleEditPost} onDeletePost={handleDeletePost} onLike={handleLikePost} onDislike={handleDislikePost} onAddComment={handleAddComment} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onTogglePinPost={handleTogglePinPost} selectedPostId={selectedPostId} onSelectPost={(post) => setSelectedPostId(post.id)} onClearSelectedPost={() => setSelectedPostId(null)} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} onTogglePostCommentRestriction={handleTogglePostCommentRestriction} onLikeComment={handleLikeComment} onDislikeComment={handleDislikeComment} /></div>;
       case 'My Chats':
         const userChats = (loggedInUser.role === 'Admin' || loggedInUser.role === 'Super Admin')
             ? chats.filter(c => !c.transactionId && (c.buyer === loggedInUser.name || c.seller === loggedInUser.name)) 
@@ -1776,7 +1952,8 @@ const App: React.FC = () => {
             onForwardMessage={(message) => setForwardMessageState({ message, isOpen: true })}
         /></div>;
       case 'My Profile':
-        return <MyProfilePage currentUser={loggedInUser} allPosts={posts} allTransactions={transactions} allDisputes={disputes} activityLog={activityLog.filter(log => log.userId === loggedInUser.id)} users={users} onDisputeSelect={setSelectedDispute} onSelectTransaction={setSelectedTransaction} onUpdateSettings={handleUpdateSettings} onLike={handleLikePost} onDislike={handleDislikePost} onViewProfile={handleViewProfile} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onUnfollow={handleUnfollow} onStartChat={(userToMessage) => handleStartChat({ userToMessage })} onAddReview={handleAddReview} onSelectPost={handleSelectPost} onTogglePinPost={handleTogglePinPost} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} />;
+// FIX: Passed the missing onLikeComment and onDislikeComment props to MyProfilePage to resolve a TypeScript error.
+        return <MyProfilePage currentUser={loggedInUser} allPosts={posts} allTransactions={transactions} allDisputes={disputes} activityLog={activityLog.filter(log => log.userId === loggedInUser.id)} users={users} onDisputeSelect={setSelectedDispute} onSelectTransaction={setSelectedTransaction} onUpdateSettings={handleUpdateSettings} onLike={handleLikePost} onDislike={handleDislikePost} onViewProfile={handleViewProfile} onAddComment={handleAddComment} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onUnfollow={handleUnfollow} onStartChat={(userToMessage) => handleStartChat({ userToMessage })} onAddReview={handleAddReview} onSelectPost={handleSelectPost} onTogglePinPost={handleTogglePinPost} onFlagPost={handleFlagPost} onFlagComment={handleFlagComment} onResolvePostFlag={handleResolvePostFlag} onResolveCommentFlag={handleResolveCommentFlag} onTogglePostCommentRestriction={handleTogglePostCommentRestriction} onLikeComment={handleLikeComment} onDislikeComment={handleDislikeComment} />;
       default:
         return <div>Select a view</div>;
     }
@@ -1807,6 +1984,7 @@ const App: React.FC = () => {
             onAcceptFollowRequest={handleAcceptFollowRequest}
             onDeclineFollowRequest={handleDeclineFollowRequest}
         />
+        {isMaintenanceMode && <MaintenanceBanner />}
         <BanNotificationBanner user={loggedInUser} />
         <main className="flex-1 overflow-y-auto">
           {mainContent()}

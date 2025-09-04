@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Review, UserRole, Transaction } from '../types';
 import { UserCircleIcon, ChatBubbleOvalLeftEllipsisIcon, UserPlusIcon, NoSymbolIcon, StopCircleIcon, CheckCircleIcon, StarIcon, HandThumbUpIcon, ChatBubbleBottomCenterTextIcon, UserMinusIcon, ArrowUpIcon, ArrowDownIcon } from '../types';
@@ -35,9 +37,13 @@ interface UserProfilePageProps {
   onFlagComment: (postId: string, commentId: string) => void;
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
+  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video' }, parentId?: string | null) => void;
   onEditComment: (postId: string, commentId: string, newContent: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
   onSetUserRole: (userId: string, newRole: UserRole) => void;
+  onTogglePostCommentRestriction: (postId: string) => void;
+  onLikeComment: (postId: string, commentId: string) => void;
+  onDislikeComment: (postId: string, commentId: string) => void;
 }
 
 const ProfileStat: React.FC<{ value: string | number, label: string, icon: React.ReactNode }> = ({ value, label, icon }) => (
@@ -239,7 +245,7 @@ const ProfileTabs: React.FC<{ activeTab: ProfileTab; onTabChange: (tab: ProfileT
 );
 
 
-export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, transactions, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onEditComment, onDeleteComment, onSetUserRole }) => {
+export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, transactions, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onAddComment, onEditComment, onDeleteComment, onSetUserRole, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('Topics');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
@@ -304,7 +310,20 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts
                           className="w-full text-left bg-surface dark:bg-dark-surface p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <p className="text-xs text-text-secondary dark:text-dark-text-secondary mb-2">Comment on: <span className="font-semibold">{comment.postTitle}</span></p>
-                          <CommentItem comment={comment} author={user} currentUser={currentUser} onViewProfile={onViewProfile} onEdit={(newContent) => onEditComment(comment.postId, comment.id, newContent)} onDelete={() => onDeleteComment(comment.postId, comment.id)} onFlag={() => onFlagComment(comment.postId, comment.id)} onResolve={() => onResolveCommentFlag(comment.postId, comment.id)} />
+                          <CommentItem 
+                            comment={comment}
+                            postId={comment.postId}
+                            currentUser={currentUser}
+                            users={users}
+                            onViewProfile={onViewProfile}
+                            onAddComment={onAddComment}
+                            onEditComment={onEditComment}
+                            onDeleteComment={onDeleteComment}
+                            onFlagComment={onFlagComment}
+                            onResolveCommentFlag={onResolveCommentFlag}
+                            onLikeComment={onLikeComment}
+                            onDislikeComment={onDislikeComment}
+                          />
                         </div>
                       );
                     })}

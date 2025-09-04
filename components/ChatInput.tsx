@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../types';
 import { PaperAirplaneIcon, MicrophoneIcon, FaceSmileIcon, XMarkIcon, StopIcon } from '../types';
@@ -70,14 +71,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, replyingTo, onCl
     return `${mins}:${secs}`;
   };
 
+  const getMessagePreview = (message: Message): string => {
+    if (message.text) return message.text;
+    if (message.stickerUrl) return 'Sticker';
+    if (message.voiceNote) return 'Voice Note';
+    if (message.attachment) return `Attachment: ${message.attachment.name}`;
+    return '...';
+  }
+
   return (
     <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-surface flex-shrink-0">
       {replyingTo && (
         <div className="px-3 py-2 text-sm bg-gray-100 dark:bg-gray-600 rounded-t-lg flex justify-between items-center">
           <div>
             <p className="font-semibold text-text-secondary dark:text-dark-text-secondary">Replying to {replyingTo.sender}</p>
-            {/* FIX: Generated message content preview for the reply context since 'contentPreview' does not exist on the 'Message' type. The logic now correctly checks for text, a sticker, or a voice note to display the appropriate preview. */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyingTo.text ? replyingTo.text : (replyingTo.stickerUrl ? 'Sticker' : 'Voice Note')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{getMessagePreview(replyingTo)}</p>
           </div>
           <button onClick={onClearReply} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-500">
             <XMarkIcon className="w-4 h-4" />

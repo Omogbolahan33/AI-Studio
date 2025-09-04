@@ -1,13 +1,18 @@
 
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { User } from '../types';
 import { PaperClipIcon, FaceSmileIcon, PaintBrushIcon, BoldIcon, ItalicIcon, Bars3BottomLeftIcon, UserCircleIcon } from '../types';
 
 interface CommentFormProps {
   currentUser: User;
+  users: User[];
   onSubmit: (commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }) => void;
   initialContent?: string;
   isEditMode?: boolean;
+  onCancel?: () => void;
+  placeholderText?: string;
 }
 
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '❤️', '🔥', '🎉', '👋', '🙏'];
@@ -18,10 +23,13 @@ const ToolbarButton: React.FC<{ onClick: (e: React.MouseEvent) => void; title: s
     </button>
 );
 
-export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, onSubmit, initialContent = '', isEditMode = false }) => {
+export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, users, onSubmit, initialContent = '', isEditMode = false, onCancel, placeholderText = "What are your thoughts?" }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
+
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
@@ -52,15 +60,85 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, onSubmit,
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
   
+  const insertNodeAfterSelection = (node: Node) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.setEndAfter(node);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+  };
+
   const insertEmoji = (emoji: string) => {
       editorRef.current?.focus();
-      handleFormat('insertText', emoji);
+      const textNode = document.createTextNode(emoji);
+      insertNodeAfterSelection(textNode);
       setEmojiPickerOpen(false);
   }
 
+  const handleMentionSelect = (user: User) => {
+      if (!editorRef.current) return;
+      const content = editorRef.current.innerHTML;
+      const newContent = content.replace(/@\w*$/, "");
+      editorRef.current.innerHTML = newContent;
+  
+      const selection = window.getSelection();
+      const range = document.createRange();
+      if(editorRef.current.childNodes.length > 0){
+          range.setStart(editorRef.current.childNodes[editorRef.current.childNodes.length - 1], (editorRef.current.childNodes[editorRef.current.childNodes.length - 1].textContent || '').length);
+      } else {
+          range.setStart(editorRef.current, 0);
+      }
+      range.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      
+      const mentionNode = document.createElement('span');
+      mentionNode.className = 'mention';
+      mentionNode.textContent = `@${user.username}`;
+      mentionNode.setAttribute('contenteditable', 'false');
+
+      insertNodeAfterSelection(mentionNode);
+      // Add a space after the mention
+      const spaceNode = document.createTextNode('\u00A0');
+      insertNodeAfterSelection(spaceNode);
+      
+      setMentionQuery(null);
+  };
+
+  const handleInput = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && editorRef.current) {
+        const range = selection.getRangeAt(0);
+        const textBeforeCursor = range.startContainer.textContent?.substring(0, range.startOffset) || '';
+        const mentionMatch = textBeforeCursor.match(/@(\w+)$/);
+
+        if (mentionMatch) {
+            const query = mentionMatch[1];
+            setMentionQuery(query);
+            setMentionSuggestions(users.filter(u => u.username.toLowerCase().startsWith(query.toLowerCase()) && u.id !== currentUser.id).slice(0, 5));
+        } else {
+            setMentionQuery(null);
+        }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const content = editorRef.current?.innerHTML || '';
+    if (!editorRef.current) return;
+    
+    // Create a temporary div to parse and clean the content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = editorRef.current.innerHTML;
+    // Remove contenteditable=false from mentions
+    tempDiv.querySelectorAll('.mention').forEach(el => el.removeAttribute('contenteditable'));
+    
+    const content = tempDiv.innerHTML;
+
     if (!content.trim() && !mediaFile) {
       alert('Comment cannot be empty.');
       return;
@@ -70,6 +148,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, onSubmit,
         onSubmit({ content, mediaUrl, mediaType });
         if(editorRef.current && !isEditMode) editorRef.current.innerHTML = '';
         if(!isEditMode) handleRemoveMedia();
+        if(onCancel) onCancel(); // For reply form
     }
 
     if(mediaFile) {
@@ -94,12 +173,35 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, onSubmit,
             <UserCircleIcon className="w-10 h-10 text-gray-400" />
         )}
       </div>
-      <form onSubmit={handleSubmit} className="flex-1">
+      <form onSubmit={handleSubmit} className="flex-1 relative">
+        {mentionQuery !== null && (
+            <div className="absolute bottom-full mb-2 w-full bg-white dark:bg-dark-surface rounded-lg shadow-lg border dark:border-gray-700 z-10">
+                {mentionSuggestions.length > 0 ? (
+                    mentionSuggestions.map(user => (
+                        <button key={user.id} type="button" onClick={() => handleMentionSelect(user)} className="w-full flex items-center space-x-2 p-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700">
+                             {user.avatarUrl ? (
+                                <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full" />
+                            ) : (
+                                <UserCircleIcon className="w-8 h-8 text-gray-400" />
+                            )}
+                            <div>
+                                <p className="font-semibold text-sm text-text-primary dark:text-dark-text-primary">{user.name}</p>
+                                <p className="text-xs text-text-secondary dark:text-dark-text-secondary">@{user.username}</p>
+                            </div>
+                        </button>
+                    ))
+                ) : (
+                    <p className="p-2 text-sm text-center text-text-secondary">No users found.</p>
+                )}
+            </div>
+        )}
         <div className="border border-gray-300 rounded-lg">
           <div 
             ref={editorRef}
             contentEditable
+            onInput={handleInput}
             className="w-full p-3 min-h-[100px] text-text-primary focus:outline-none"
+            data-placeholder={placeholderText}
           />
           {mediaPreviewUrl && (
             <div className="p-3">
@@ -138,16 +240,23 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, onSubmit,
                 <ToolbarButton onClick={() => setEmojiPickerOpen(prev => !prev)} title="Add Emoji"><FaceSmileIcon className="w-5 h-5" /></ToolbarButton>
                 
                 {isEmojiPickerOpen && (
-                    <div className="absolute bottom-12 left-0 bg-white shadow-lg rounded-lg p-2 grid grid-cols-5 gap-1 border z-10">
+                    <div className="absolute bottom-12 left-0 bg-white dark:bg-dark-surface shadow-lg rounded-lg p-2 grid grid-cols-5 gap-1 border z-10">
                         {EMOJIS.map(emoji => (
                             <button type="button" key={emoji} onClick={() => insertEmoji(emoji)} className="text-xl p-1 rounded-md hover:bg-gray-100">{emoji}</button>
                         ))}
                     </div>
                 )}
             </div>
-            <button type="submit" className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors">
-              {isEditMode ? 'Save' : 'Comment'}
-            </button>
+            <div className="flex items-center space-x-2">
+              {onCancel && (
+                <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-text-secondary text-sm font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                  Cancel
+                </button>
+              )}
+              <button type="submit" className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors">
+                {isEditMode ? 'Save' : 'Comment'}
+              </button>
+            </div>
           </div>
         </div>
       </form>

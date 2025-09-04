@@ -41,93 +41,40 @@ const NavLink: React.FC<{ label: View; onClick: () => void; active: boolean }> =
     </button>
 );
 
-
-export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobileSidebar, userName, onSignOut, onNavigate, notifications, messages, onNotificationClick, theme, onToggleTheme, currentUser, users, posts, onStartChat, onViewProfile, onSelectPost, onAcceptFollowRequest, onDeclineFollowRequest }) => {
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [messagesOpen, setMessagesOpen] = useState(false);
-  const [followingOpen, setFollowingOpen] = useState(false);
-  const [followRequestsOpen, setFollowRequestsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<(User | Post)[]>([]);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [searchType, setSearchType] = useState<'Users' | 'Posts'>('Users');
-  const [isSearchTypeOpen, setIsSearchTypeOpen] = useState(false);
-
-  const profileRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const followingRef = useRef<HTMLDivElement>(null);
-  const followRequestsRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const searchTypeRef = useRef<HTMLDivElement>(null);
-
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (profileRef.current && !profileRef.current.contains(event.target as Node)) setProfileOpen(false);
-        if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setNotificationsOpen(false);
-        if (messagesRef.current && !messagesRef.current.contains(event.target as Node)) setMessagesOpen(false);
-        if (followingRef.current && !followingRef.current.contains(event.target as Node)) setFollowingOpen(false);
-        if (followRequestsRef.current && !followRequestsRef.current.contains(event.target as Node)) setFollowRequestsOpen(false);
-        if (searchRef.current && !searchRef.current.contains(event.target as Node)) setIsSearchFocused(false);
-        if (searchTypeRef.current && !searchTypeRef.current.contains(event.target as Node)) setIsSearchTypeOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-        setSearchResults([]);
-        return;
-    }
-
-    if (searchType === 'Users') {
-        const filtered = users.filter(user =>
-            (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.username.toLowerCase().includes(searchQuery.toLowerCase())) &&
-            user.id !== currentUser.id
-        ).slice(0, 5);
-        setSearchResults(filtered);
-    } else {
-        const filtered = posts.filter(post => 
-            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            stripHtml(post.content).toLowerCase().includes(searchQuery.toLowerCase())
-        ).slice(0, 5);
-        setSearchResults(filtered);
-    }
-  }, [searchQuery, users, posts, currentUser.id, searchType]);
-  
-  const stripHtml = (html: string) => {
+const stripHtml = (html: string) => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || "";
-  };
+};
 
-  const handleSelectResult = (item: User | Post) => {
-    if ('username' in item) {
-        onViewProfile(item);
-    } else {
-        onSelectPost(item);
-    }
-    setSearchQuery('');
-    setSearchResults([]);
-    setIsSearchFocused(false);
-    setIsMobileSearchOpen(false);
-  };
+interface SmartSearchProps {
+    searchRef: React.RefObject<HTMLDivElement>;
+    searchTypeRef: React.RefObject<HTMLDivElement>;
+    isSearchTypeOpen: boolean;
+    setIsSearchTypeOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    searchType: 'Users' | 'Posts';
+    setSearchType: React.Dispatch<React.SetStateAction<'Users' | 'Posts'>>;
+    searchQuery: string;
+    setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+    isSearchFocused: boolean;
+    setIsSearchFocused: React.Dispatch<React.SetStateAction<boolean>>;
+    searchResults: (User | Post)[];
+    handleSelectResult: (item: User | Post) => void;
+}
 
-  const handleProfileClick = () => {
-    onNavigate('My Profile');
-    setProfileOpen(false);
-  };
-  
-  const unreadMessagesCount = messages.length; // Simplified for now
-  const unreadNotificationsCount = notifications.filter(n => !n.read && n.type !== 'follow_request').length;
-  const followRequestCount = currentUser.pendingFollowerIds.length;
-  const followRequestUsers = users.filter(u => currentUser.pendingFollowerIds.includes(u.id));
-
-  const SmartSearch = () => (
+const SmartSearch: React.FC<SmartSearchProps> = ({
+  searchRef,
+  searchTypeRef,
+  isSearchTypeOpen,
+  setIsSearchTypeOpen,
+  searchType,
+  setSearchType,
+  searchQuery,
+  setSearchQuery,
+  isSearchFocused,
+  setIsSearchFocused,
+  searchResults,
+  handleSelectResult,
+}) => (
     <div ref={searchRef} className="relative w-full max-w-lg">
         <div className="flex w-full items-center">
             <div ref={searchTypeRef} className="relative">
@@ -207,7 +154,11 @@ export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobile
 );
 
 
-  const AdminHeader = () => (
+interface AdminHeaderProps {
+  onToggleMobileSidebar: () => void;
+  smartSearchProps: SmartSearchProps;
+}
+const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleMobileSidebar, smartSearchProps }) => (
     <>
       <div className="flex items-center space-x-2">
         <button
@@ -219,12 +170,36 @@ export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobile
         </button>
       </div>
       <div className="flex-1 flex justify-center px-4">
-        <SmartSearch />
+        <SmartSearch {...smartSearchProps} />
       </div>
     </>
-  );
+);
 
-  const MemberHeader = () => (
+interface MemberHeaderProps {
+    activeView: View;
+    onNavigate: (view: View) => void;
+    setIsMobileSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    messagesRef: React.RefObject<HTMLDivElement>;
+    setMessagesOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    unreadMessagesCount: number;
+    messagesOpen: boolean;
+    messages: Chat[];
+    onNotificationClick: (item: Notification | Chat) => void;
+    followRequestsRef: React.RefObject<HTMLDivElement>;
+    setFollowRequestsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    followRequestCount: number;
+    followRequestsOpen: boolean;
+    followRequestUsers: User[];
+    onAcceptFollowRequest: (requesterId: string) => void;
+    onDeclineFollowRequest: (requesterId: string) => void;
+    notificationsRef: React.RefObject<HTMLDivElement>;
+    setNotificationsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    unreadNotificationsCount: number;
+    notificationsOpen: boolean;
+    notifications: Notification[];
+    smartSearchProps: SmartSearchProps;
+}
+const MemberHeader: React.FC<MemberHeaderProps> = ({ activeView, onNavigate, setIsMobileSearchOpen, messagesRef, setMessagesOpen, unreadMessagesCount, messagesOpen, messages, onNotificationClick, followRequestsRef, setFollowRequestsOpen, followRequestCount, followRequestsOpen, followRequestUsers, onAcceptFollowRequest, onDeclineFollowRequest, notificationsRef, setNotificationsOpen, unreadNotificationsCount, notificationsOpen, notifications, smartSearchProps }) => (
     <>
         <div className="flex items-center space-x-4">
             <button onClick={() => onNavigate('Forum')} className="flex items-center gap-2 text-2xl font-bold text-primary dark:text-dark-text-primary focus:outline-none hover:text-primary-hover dark:hover:text-gray-300">
@@ -237,7 +212,7 @@ export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobile
             </div>
         </div>
         <div className="flex-1 flex justify-center px-4 hidden md:flex">
-             <SmartSearch />
+             <SmartSearch {...smartSearchProps} />
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
              <button onClick={() => setIsMobileSearchOpen(true)} className="md:hidden p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -274,9 +249,13 @@ export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobile
             </div>
         </div>
     </>
-  );
+);
 
-  const MobileSearch = () => (
+interface MobileSearchProps {
+    setIsMobileSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    smartSearchProps: SmartSearchProps;
+}
+const MobileSearch: React.FC<MobileSearchProps> = ({ setIsMobileSearchOpen, smartSearchProps }) => (
     <div className="p-0 flex items-center gap-2 w-full">
          <button
             onClick={() => setIsMobileSearchOpen(false)}
@@ -286,19 +265,143 @@ export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobile
             <ChevronLeftIcon className="w-6 h-6" />
         </button>
         <div className="flex-1">
-            <SmartSearch />
+            <SmartSearch {...smartSearchProps} />
         </div>
     </div>
 );
 
 
+export const Header: React.FC<HeaderProps> = ({ role, activeView, onToggleMobileSidebar, userName, onSignOut, onNavigate, notifications, messages, onNotificationClick, theme, onToggleTheme, currentUser, users, posts, onStartChat, onViewProfile, onSelectPost, onAcceptFollowRequest, onDeclineFollowRequest }) => {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
+  const [followRequestsOpen, setFollowRequestsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<(User | Post)[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [searchType, setSearchType] = useState<'Users' | 'Posts'>('Users');
+  const [isSearchTypeOpen, setIsSearchTypeOpen] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const followingRef = useRef<HTMLDivElement>(null);
+  const followRequestsRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTypeRef = useRef<HTMLDivElement>(null);
+
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (profileRef.current && !profileRef.current.contains(event.target as Node)) setProfileOpen(false);
+        if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setNotificationsOpen(false);
+        if (messagesRef.current && !messagesRef.current.contains(event.target as Node)) setMessagesOpen(false);
+        if (followingRef.current && !followingRef.current.contains(event.target as Node)) setFollowingOpen(false);
+        if (followRequestsRef.current && !followRequestsRef.current.contains(event.target as Node)) setFollowRequestsOpen(false);
+        if (searchRef.current && !searchRef.current.contains(event.target as Node)) setIsSearchFocused(false);
+        if (searchTypeRef.current && !searchTypeRef.current.contains(event.target as Node)) setIsSearchTypeOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+        setSearchResults([]);
+        return;
+    }
+
+    if (searchType === 'Users') {
+        const filtered = users.filter(user =>
+            (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.username.toLowerCase().includes(searchQuery.toLowerCase())) &&
+            user.id !== currentUser.id
+        ).slice(0, 5);
+        setSearchResults(filtered);
+    } else {
+        const filtered = posts.filter(post => 
+            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            stripHtml(post.content).toLowerCase().includes(searchQuery.toLowerCase())
+        ).slice(0, 5);
+        setSearchResults(filtered);
+    }
+  }, [searchQuery, users, posts, currentUser.id, searchType]);
+
+  const handleSelectResult = (item: User | Post) => {
+    if ('username' in item) {
+        onViewProfile(item);
+    } else {
+        onSelectPost(item);
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchFocused(false);
+    setIsMobileSearchOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    onNavigate('My Profile');
+    setProfileOpen(false);
+  };
+  
+  const unreadMessagesCount = messages.length; // Simplified for now
+  const unreadNotificationsCount = notifications.filter(n => !n.read && n.type !== 'follow_request').length;
+  const followRequestCount = currentUser.pendingFollowerIds.length;
+  const followRequestUsers = users.filter(u => currentUser.pendingFollowerIds.includes(u.id));
+
+  const smartSearchProps = {
+      searchRef,
+      searchTypeRef,
+      isSearchTypeOpen,
+      setIsSearchTypeOpen,
+      searchType,
+      setSearchType,
+      searchQuery,
+      setSearchQuery,
+      isSearchFocused,
+      setIsSearchFocused,
+      searchResults,
+      handleSelectResult,
+  };
+  
+  const memberHeaderProps = {
+    activeView,
+    onNavigate,
+    setIsMobileSearchOpen,
+    messagesRef,
+    setMessagesOpen,
+    unreadMessagesCount,
+    messagesOpen,
+    messages,
+    onNotificationClick,
+    followRequestsRef,
+    setFollowRequestsOpen,
+    followRequestCount,
+    followRequestsOpen,
+    followRequestUsers,
+    onAcceptFollowRequest,
+    onDeclineFollowRequest,
+    notificationsRef,
+    setNotificationsOpen,
+    unreadNotificationsCount,
+    notificationsOpen,
+    notifications,
+    smartSearchProps,
+  };
+
+
   return (
     <header className="bg-surface dark:bg-dark-surface shadow-sm p-4 flex justify-between items-center flex-shrink-0 z-10 gap-4 relative">
        {isMobileSearchOpen && role === 'Member' ? (
-            <MobileSearch />
+            <MobileSearch setIsMobileSearchOpen={setIsMobileSearchOpen} smartSearchProps={smartSearchProps} />
         ) : (
             <>
-                {role === 'Admin' || role === 'Super Admin' ? <AdminHeader /> : <MemberHeader />}
+                {role === 'Admin' || role === 'Super Admin' ? 
+                  <AdminHeader onToggleMobileSidebar={onToggleMobileSidebar} smartSearchProps={smartSearchProps} /> : 
+                  <MemberHeader {...memberHeaderProps} />
+                }
       
                 <div className="flex items-center space-x-2">
                     <div className="relative" ref={profileRef}>

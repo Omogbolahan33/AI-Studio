@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Transaction, Dispute, Comment, ActivityLog, Review } from '../types';
 import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon } from '../types';
@@ -26,6 +28,7 @@ interface MyProfilePageProps {
   onLike?: (postId: string) => void;
   onDislike?: (postId: string) => void;
   onViewProfile?: (user: User) => void;
+  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video' }, parentId?: string | null) => void;
   onEditComment?: (postId: string, commentId: string, newContent: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
   onUnfollow: (userId: string) => void;
@@ -37,6 +40,9 @@ interface MyProfilePageProps {
   onFlagComment: (postId: string, commentId: string) => void;
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
+  onTogglePostCommentRestriction: (postId: string) => void;
+  onLikeComment: (postId: string, commentId: string) => void;
+  onDislikeComment: (postId: string, commentId: string) => void;
 }
 
 type ProfileTab = 'Activity' | 'Purchases' | 'Sales' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
@@ -78,6 +84,7 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onLike = () => {},
     onDislike = () => {},
     onViewProfile = () => {},
+    onAddComment,
     onEditComment,
     onDeleteComment,
     onUnfollow,
@@ -88,7 +95,10 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onFlagPost,
     onFlagComment,
     onResolvePostFlag,
-    onResolveCommentFlag
+    onResolveCommentFlag,
+    onTogglePostCommentRestriction,
+    onLikeComment,
+    onDislikeComment
 }) => {
     const [activeTab, setActiveTab] = useState<ProfileTab>('Activity');
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -146,7 +156,6 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                                 />
                             } else { // It's a Comment
                                 const comment = item as Comment & { postTitle: string; postAuthor: string, postId: string };
-                                const author = users.find(u => u.name === comment.author);
                                 const post = allPosts.find(p => p.id === comment.postId);
                                 if (!post) return null;
                                 return (
@@ -159,15 +168,20 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                                         className="w-full text-left bg-surface dark:bg-dark-surface p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
                                         <p className="text-sm text-text-secondary mb-2">You commented on: <span className="font-semibold">{comment.postTitle}</span> by <span className="font-semibold">{comment.postAuthor}</span></p>
-                                        <CommentItem 
-                                            comment={comment} 
-                                            author={author} 
-                                            currentUser={currentUser} 
-                                            onViewProfile={onViewProfile} 
-                                            onEdit={(newContent) => { if (onEditComment) onEditComment(comment.postId, comment.id, newContent); }}
-                                            onDelete={() => { if (onDeleteComment) onDeleteComment(comment.postId, comment.id); }} 
-                                            onFlag={() => onFlagComment(comment.postId, comment.id)}
-                                            onResolve={() => onResolveCommentFlag(comment.postId, comment.id)}
+                                        {/* FIX: Corrected props passed to CommentItem to match its definition. Removed 'author' and added 'postId', 'users', 'onAddComment', and correctly named event handlers. */}
+                                        <CommentItem
+                                            comment={comment}
+                                            postId={comment.postId}
+                                            users={users}
+                                            currentUser={currentUser}
+                                            onViewProfile={onViewProfile}
+                                            onAddComment={onAddComment}
+                                            onEditComment={onEditComment ? onEditComment : () => {}}
+                                            onDeleteComment={onDeleteComment ? onDeleteComment : () => {}}
+                                            onFlagComment={onFlagComment}
+                                            onResolveCommentFlag={onResolveCommentFlag}
+                                            onLikeComment={onLikeComment}
+                                            onDislikeComment={onDislikeComment}
                                         />
                                     </div>
                                 )

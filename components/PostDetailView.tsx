@@ -1,6 +1,8 @@
+
+
 import React, { useMemo } from 'react';
 import type { Post, User } from '../types';
-import { HandThumbUpIcon, HandThumbDownIcon, UserCircleIcon, PencilIcon, TrashIcon, ArrowUpTrayIcon, PinIcon, FlagIcon, ShieldCheckIcon } from '../types';
+import { HandThumbUpIcon, HandThumbDownIcon, UserCircleIcon, PencilIcon, TrashIcon, ArrowUpTrayIcon, PinIcon, FlagIcon, ShieldCheckIcon, LockClosedIcon, LockOpenIcon } from '../types';
 import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
 import { VerificationBadge } from './VerificationBadge';
@@ -41,7 +43,7 @@ interface PostDetailViewProps {
   onDeletePost: (postId: string) => void;
   onLike: (postId: string) => void;
   onDislike: (postId: string) => void;
-  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }) => void;
+  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }, parentId: string | null) => void;
   onEditComment: (postId: string, commentId: string, newContent: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
   onViewProfile: (user: User) => void;
@@ -50,15 +52,18 @@ interface PostDetailViewProps {
   onFlagComment: (postId: string, commentId: string) => void;
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
+  onTogglePostCommentRestriction: (postId: string) => void;
+  onLikeComment: (postId: string, commentId: string) => void;
+  onDislikeComment: (postId: string, commentId: string) => void;
   isSold?: boolean;
 }
 
-export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUser, users, onBack, onInitiatePurchase, onStartChat, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, isSold }) => {
+export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUser, users, onBack, onInitiatePurchase, onStartChat, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, isSold, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {
   const isAuthor = currentUser.name === post.author;
   const author = users.find(u => u.name === post.author);
   const hasLiked = post.likedBy.includes(currentUser.id);
   const hasDisliked = post.dislikedBy.includes(currentUser.id);
-  const isAdmin = currentUser.role === 'Admin';
+  const isAdmin = currentUser.role === 'Admin' || currentUser.role === 'Super Admin';
   const hasFlagged = post.flaggedBy.includes(currentUser.id);
   
   const isPinned = useMemo(() => {
@@ -94,6 +99,8 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
         .catch(err => console.error('Failed to copy link:', err));
     }
   };
+  
+  const isCommentingDisabled = post.isCommentingRestricted && currentUser.role === 'Member';
   
   return (
     <div>
@@ -171,6 +178,11 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
                                 </button>
                             </>
                         )}
+                        {isAdmin && (
+                            <button onClick={() => onTogglePostCommentRestriction(post.id)} title={post.isCommentingRestricted ? "Unlock Comments" : "Lock Comments"} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200">
+                                {post.isCommentingRestricted ? <LockOpenIcon className="w-5 h-5 text-green-500" /> : <LockClosedIcon className="w-5 h-5 text-red-500" />}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -228,29 +240,37 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
             <div className="p-6">
                 <h3 className="text-xl font-bold mb-4">{post.comments.length} Comment{post.comments.length !== 1 && 's'}</h3>
                 <div className="space-y-6">
-                    {post.comments.length > 0 ? (
-                        post.comments.map(comment => {
-                            const commentAuthor = users.find(u => u.name === comment.author);
-                            return (
-                                <CommentItem 
-                                    key={comment.id}
-                                    comment={comment}
-                                    author={commentAuthor}
-                                    currentUser={currentUser}
-                                    onViewProfile={onViewProfile}
-                                    onEdit={(newContent) => onEditComment(post.id, comment.id, newContent)}
-                                    onDelete={() => onDeleteComment(post.id, comment.id)}
-                                    onFlag={() => onFlagComment(post.id, comment.id)}
-                                    onResolve={() => onResolveCommentFlag(post.id, comment.id)}
-                                />
-                            )
-                        })
-                    ) : (
-                        <p className="text-center text-sm text-text-secondary py-4">No comments yet. Be the first to reply!</p>
-                    )}
+                    {post.comments.map(comment => (
+                        <CommentItem
+                            key={comment.id}
+                            comment={comment}
+                            postId={post.id}
+                            users={users}
+                            currentUser={currentUser}
+                            onViewProfile={onViewProfile}
+                            onAddComment={onAddComment}
+                            onEditComment={onEditComment}
+                            onDeleteComment={onDeleteComment}
+                            onFlagComment={onFlagComment}
+                            onResolveCommentFlag={onResolveCommentFlag}
+                            onLikeComment={onLikeComment}
+                            onDislikeComment={onDislikeComment}
+                        />
+                    ))}
+
                     <div className="pt-6 border-t dark:border-gray-700">
                         <h4 className="font-semibold text-text-primary dark:text-dark-text-primary mb-3">Leave a Reply</h4>
-                        <CommentForm currentUser={currentUser} onSubmit={(commentData) => onAddComment(post.id, commentData)} />
+                        {isCommentingDisabled ? (
+                            <div className="p-4 bg-gray-100 dark:bg-gray-700 text-center rounded-lg text-sm text-text-secondary dark:text-dark-text-secondary">
+                                Commenting has been restricted by a moderator.
+                            </div>
+                        ) : (
+                            <CommentForm 
+                                currentUser={currentUser} 
+                                users={users}
+                                onSubmit={(commentData) => onAddComment(post.id, commentData, null)} 
+                            />
+                        )}
                     </div>
                 </div>
             </div>

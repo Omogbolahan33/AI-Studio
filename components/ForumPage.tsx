@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Post, Category, User, PostCondition, Transaction } from '../types';
 import { PostListItem } from './PostListItem';
@@ -18,7 +20,7 @@ interface ForumPageProps {
   onDeletePost: (postId: string) => void;
   onLike: (postId: string) => void;
   onDislike: (postId: string) => void;
-  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }) => void;
+  onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }, parentId: string | null) => void;
   onEditComment: (postId: string, commentId: string, newContent: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
   onViewProfile: (user: User) => void;
@@ -30,9 +32,12 @@ interface ForumPageProps {
   onFlagComment: (postId: string, commentId: string) => void;
   onResolvePostFlag: (postId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
+  onTogglePostCommentRestriction: (postId: string) => void;
+  onLikeComment: (postId: string, commentId: string) => void;
+  onDislikeComment: (postId: string, commentId: string) => void;
 }
 
-export const ForumPage: React.FC<ForumPageProps> = ({ posts, transactions, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, selectedPostId, onSelectPost, onClearSelectedPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag }) => {
+export const ForumPage: React.FC<ForumPageProps> = ({ posts, transactions, categories, users, currentUser, onInitiatePurchase, onStartChat, onCreatePost, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, selectedPostId, onSelectPost, onClearSelectedPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
   const [showFab, setShowFab] = useState(false);
@@ -170,6 +175,9 @@ export const ForumPage: React.FC<ForumPageProps> = ({ posts, transactions, categ
         onFlagComment={onFlagComment}
         onResolvePostFlag={onResolvePostFlag}
         onResolveCommentFlag={onResolveCommentFlag}
+        onTogglePostCommentRestriction={onTogglePostCommentRestriction}
+        onLikeComment={onLikeComment}
+        onDislikeComment={onDislikeComment}
       />
     );
   }

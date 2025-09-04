@@ -43,8 +43,8 @@ export const mockPosts: Post[] = [
         title: 'For Sale: Barely Used Electric Guitar',
         content: 'Selling my Fender Stratocaster, sunburst color. It\'s in excellent condition, barely played. Comes with a soft case and a strap. Perfect for beginners or intermediate players. DM for more pictures!',
         comments: [
-            { id: 'C1', author: 'AnonymousFox', content: 'What year is it?', timestamp: timeAgo(1, 'h'), flaggedBy: [] },
-            { id: 'C2', author: 'AnonymousPanda', content: 'It\'s a 2021 model.', timestamp: timeAgo(1, 'h'), flaggedBy: [] }
+            { id: 'C1', author: 'AnonymousFox', content: 'What year is it?', timestamp: timeAgo(1, 'h'), flaggedBy: [], replies: [], parentId: null, likedBy: [], dislikedBy: [] },
+            { id: 'C2', author: 'AnonymousPanda', content: 'It\'s a 2021 model.', timestamp: timeAgo(1, 'h'), flaggedBy: [], replies: [], parentId: null, likedBy: [], dislikedBy: [] }
         ],
         isAdvert: true,
         price: 450,
@@ -54,6 +54,7 @@ export const mockPosts: Post[] = [
         brand: 'Fender',
         condition: 'Used - Like New',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST002',
@@ -63,13 +64,34 @@ export const mockPosts: Post[] = [
         title: 'What is your favorite programming language and why?',
         content: 'I\'m curious to hear what everyone is passionate about. I\'ve been using TypeScript a lot lately and I\'m really enjoying the type safety it provides. What about you?',
         comments: [
-             { id: 'C3', author: 'AnonymousFox', content: 'Python, for its readability and extensive libraries.', timestamp: timeAgo(3, 'h'), flaggedBy: [] },
+             { 
+                id: 'C3', 
+                author: 'AnonymousFox', 
+                content: 'Python, for its readability and extensive libraries.', 
+                timestamp: timeAgo(3, 'h'), 
+                flaggedBy: [], 
+                replies: [
+                    { 
+                        id: 'C4', 
+                        author: 'Alice', 
+                        content: 'Good point @anonymousfox! The ecosystem is massive. I agree.', 
+                        timestamp: timeAgo(2, 'h'), 
+                        flaggedBy: [], 
+                        replies: [],
+                        parentId: 'C3',
+                        likedBy: [], dislikedBy: []
+                    }
+                ],
+                parentId: null,
+                likedBy: ['user-02'], dislikedBy: []
+             },
         ],
         isAdvert: false,
         categoryId: 'cat-02',
         likedBy: ['user-03', 'user-04'],
         dislikedBy: [],
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST003',
@@ -84,6 +106,7 @@ export const mockPosts: Post[] = [
         likedBy: ['user-02'],
         dislikedBy: [],
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST004',
@@ -99,6 +122,7 @@ export const mockPosts: Post[] = [
         dislikedBy: [],
         pinnedAt: timeAgo(12, 'h'),
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST005',
@@ -116,6 +140,7 @@ export const mockPosts: Post[] = [
         brand: 'N/A',
         condition: 'Used - Good',
         flaggedBy: ['user-07'],
+        isCommentingRestricted: false,
     },
     // Added Posts to match transactions
     {
@@ -134,6 +159,7 @@ export const mockPosts: Post[] = [
         brand: 'Canon',
         condition: 'Used - Good',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST007',
@@ -151,6 +177,7 @@ export const mockPosts: Post[] = [
         brand: 'Handmade',
         condition: 'New',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST008',
@@ -168,6 +195,7 @@ export const mockPosts: Post[] = [
         brand: 'N/A',
         condition: 'Used - Like New',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST009',
@@ -185,6 +213,7 @@ export const mockPosts: Post[] = [
         brand: 'N/A',
         condition: 'Used - Fair',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
     {
         id: 'POST010',
@@ -202,6 +231,7 @@ export const mockPosts: Post[] = [
         brand: 'Sony',
         condition: 'Used - Like New',
         flaggedBy: [],
+        isCommentingRestricted: false,
     },
 ];
 
