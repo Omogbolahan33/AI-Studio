@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Transaction, Dispute, Comment, ActivityLog, Review } from '../types';
-import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon } from '../types';
+import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon, MagnifyingGlassIcon, ArrowDownIcon, ArrowUpIcon } from '../types';
 import { PostListItem } from './PostListItem';
 import { CommentItem } from './CommentItem';
 import { TransactionsTable } from './TransactionsTable';
@@ -45,7 +45,7 @@ interface MyProfilePageProps {
   onDislikeComment: (postId: string, commentId: string) => void;
 }
 
-type ProfileTab = 'Activity' | 'Purchases' | 'Sales' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
+type ProfileTab = 'Activity' | 'Transactions' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
     <button
@@ -102,11 +102,43 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<ProfileTab>('Activity');
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+    const [transactionSearchTerm, setTransactionSearchTerm] = useState('');
+    const [transactionFilter, setTransactionFilter] = useState<'all' | 'purchases' | 'sales'>('all');
+    const [transactionSort, setTransactionSort] = useState<'newest' | 'oldest'>('newest');
 
     const handleUpdateAvatar = (avatarUrl: string) => {
         onUpdateSettings(currentUser.id, { avatarUrl });
         setIsAvatarModalOpen(false);
     };
+
+    const displayedTransactions = useMemo(() => {
+        let transactions: Transaction[] = [];
+        if (transactionFilter === 'purchases') {
+            transactions = allTransactions.filter(t => t.buyer === currentUser.name);
+        } else if (transactionFilter === 'sales') {
+            transactions = allTransactions.filter(t => t.seller === currentUser.name);
+        } else {
+            transactions = allTransactions.filter(t => t.buyer === currentUser.name || t.seller === currentUser.name);
+        }
+
+        if (transactionSearchTerm) {
+            const lowercasedTerm = transactionSearchTerm.toLowerCase();
+            transactions = transactions.filter(t =>
+                t.item.toLowerCase().includes(lowercasedTerm) ||
+                t.id.toLowerCase().includes(lowercasedTerm) ||
+                t.buyer.toLowerCase().includes(lowercasedTerm) ||
+                t.seller.toLowerCase().includes(lowercasedTerm)
+            );
+        }
+
+        transactions.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return transactionSort === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
+        return transactions;
+    }, [allTransactions, currentUser.name, transactionFilter, transactionSearchTerm, transactionSort]);
     
     const stats = useMemo(() => {
         const userPosts = allPosts.filter(p => p.author === currentUser.name);
@@ -168,7 +200,6 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                                         className="w-full text-left bg-surface dark:bg-dark-surface p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
                                         <p className="text-sm text-text-secondary mb-2">You commented on: <span className="font-semibold">{comment.postTitle}</span> by <span className="font-semibold">{comment.postAuthor}</span></p>
-                                        {/* FIX: Corrected props passed to CommentItem to match its definition. Removed 'author' and added 'postId', 'users', 'onAddComment', and correctly named event handlers. */}
                                         <CommentItem
                                             comment={comment}
                                             postId={comment.postId}
@@ -189,16 +220,49 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                         })}
                     </div>
                 ) : <p className="text-center text-text-secondary py-8">You have no recent activity.</p>;
-            case 'Purchases':
-                const purchaseTransactions = allTransactions.filter(t => t.buyer === currentUser.name);
-                return purchaseTransactions.length > 0 ? (
-                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><TransactionsTable transactions={purchaseTransactions} onSelectTransaction={onSelectTransaction} /></div>
-                ) : <p className="text-center text-text-secondary py-8">You have not purchased any items.</p>;
-            case 'Sales':
-                const salesTransactions = allTransactions.filter(t => t.seller === currentUser.name);
-                return salesTransactions.length > 0 ? (
-                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><TransactionsTable transactions={salesTransactions} onSelectTransaction={onSelectTransaction} /></div>
-                ) : <p className="text-center text-text-secondary py-8">You have not sold any items.</p>;
+            case 'Transactions':
+                return (
+                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow">
+                        <div className="p-4 bg-gray-50 dark:bg-gray-700/50 flex flex-col sm:flex-row items-center gap-4 border-b dark:border-gray-600">
+                            <div className="relative w-full sm:flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="search"
+                                    placeholder="Search by item, ID, or user..."
+                                    value={transactionSearchTerm}
+                                    onChange={(e) => setTransactionSearchTerm(e.target.value)}
+                                    className="pl-10 pr-4 py-2 w-full border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <select
+                                    value={transactionFilter}
+                                    aria-label="Filter transactions"
+                                    onChange={(e) => setTransactionFilter(e.target.value as any)}
+                                    className="py-2 px-3 w-full sm:w-auto border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                >
+                                    <option value="all">All Transactions</option>
+                                    <option value="purchases">My Purchases</option>
+                                    <option value="sales">My Sales</option>
+                                </select>
+                                <button
+                                    onClick={() => setTransactionSort(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                                    className="p-2 border rounded-lg bg-surface dark:bg-dark-surface hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                                    title={`Sort by ${transactionSort === 'newest' ? 'oldest' : 'newest'}`}
+                                >
+                                    {transactionSort === 'newest' ? <ArrowDownIcon className="w-5 h-5" /> : <ArrowUpIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+                        {displayedTransactions.length > 0 ? (
+                            <TransactionsTable transactions={displayedTransactions} onSelectTransaction={onSelectTransaction} />
+                        ) : (
+                            <p className="text-center text-text-secondary py-8">No transactions found.</p>
+                        )}
+                    </div>
+                );
             case 'Disputes':
                 return userDisputes.length > 0 ? (
                      <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><DisputesTable disputes={userDisputes} onDisputeSelect={onDisputeSelect} /></div>
@@ -273,11 +337,8 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                      <TabButton active={activeTab === 'Reviews'} onClick={() => setActiveTab('Reviews')}>
                         <StarIcon className="w-5 h-5 mr-2" /> Reviews
                     </TabButton>
-                    <TabButton active={activeTab === 'Purchases'} onClick={() => setActiveTab('Purchases')}>
-                        <DocumentReportIcon className="w-5 h-5 mr-2" /> Purchases
-                    </TabButton>
-                     <TabButton active={activeTab === 'Sales'} onClick={() => setActiveTab('Sales')}>
-                        <CurrencyDollarIcon className="w-5 h-5 mr-2" /> Sales
+                    <TabButton active={activeTab === 'Transactions'} onClick={() => setActiveTab('Transactions')}>
+                        <CurrencyDollarIcon className="w-5 h-5 mr-2" /> Transactions
                     </TabButton>
                     <TabButton active={activeTab === 'Disputes'} onClick={() => setActiveTab('Disputes')}>
                          <ShieldExclamationIcon className="w-5 h-5 mr-2" /> Disputes

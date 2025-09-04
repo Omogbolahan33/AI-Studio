@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { analyzeDispute } from '../services/geminiService';
-// FIX: Changed onAdminSendMessage to onSendMessage and updated its signature to match the props passed in App.tsx.
 import type { Dispute, AIAnalysis, Transaction, User } from '../types';
 
 interface DisputeModalProps {
@@ -81,7 +80,6 @@ export const DisputeModal: React.FC<DisputeModalProps> = ({ dispute, transaction
   const handleAdminMessageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminMessage.trim()) {
-      // FIX: Updated the call to use onSendMessage with the correct message object structure.
       onSendMessage(dispute.id, { text: adminMessage.trim() });
       setAdminMessage('');
     }
