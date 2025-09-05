@@ -83,9 +83,9 @@ export const UpdateAvatarModal: React.FC<UpdateAvatarModalProps> = ({ onClose, o
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-surface rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
                 <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-text-primary">Update Profile Picture</h2>
+                    <h2 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">Update Profile Picture</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -123,8 +123,8 @@ export const UpdateAvatarModal: React.FC<UpdateAvatarModalProps> = ({ onClose, o
                     {activeTab === 'generate' && (
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="prompt" className="block text-sm font-medium text-text-secondary">Describe your avatar</label>
-                                <input id="prompt" type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
+                                <label htmlFor="prompt" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Describe your avatar</label>
+                                <input id="prompt" type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface dark:text-dark-text-primary rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
                             </div>
                             <button onClick={handleGenerate} disabled={isLoading} className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-secondary text-white rounded-lg hover:opacity-90 transition-colors disabled:bg-gray-400">
                                 <SparklesIcon className="w-5 h-5" />

@@ -33,15 +33,15 @@ export const AddBankAccountModal: React.FC<AddBankAccountModalProps> = ({ onClos
           <div className="p-6 space-y-4">
             <div>
               <label htmlFor="bankName" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Bank Name</label>
-              <input type="text" id="bankName" name="bankName" value={account.bankName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="bankName" name="bankName" value={account.bankName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
             <div>
               <label htmlFor="accountName" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Account Holder Name</label>
-              <input type="text" id="accountName" name="accountName" value={account.accountName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="accountName" name="accountName" value={account.accountName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
             <div>
               <label htmlFor="accountNumber" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Account Number</label>
-              <input type="text" id="accountNumber" name="accountNumber" value={account.accountNumber} onChange={handleChange} required pattern="\d{10,}" title="Account number should be at least 10 digits" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="accountNumber" name="accountNumber" value={account.accountNumber} onChange={handleChange} required pattern="\d{10,}" title="Account number should be at least 10 digits" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
           </div>
           <div className="p-6 border-t bg-gray-50 dark:bg-gray-900 flex justify-end space-x-3">

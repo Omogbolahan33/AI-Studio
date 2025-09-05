@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { EyeIcon, EyeSlashIcon, UserCircleIcon, LockClosedIcon, AtSymbolIcon, CommunityIcon, GoogleIcon, FacebookIcon } from '../types';
+import { EyeIcon, EyeSlashIcon, UserCircleIcon, LockClosedIcon, AtSymbolIcon, CommunityIcon, GoogleIcon, FacebookIcon, EnvelopeIcon } from '../types';
 
 interface SignUpPageProps {
-    onSignUp: (username: string, password: string) => { success: boolean, message: string };
+    onSignUp: (username: string, email: string, password: string) => { success: boolean, message: string };
     onSwitchMode: (mode: 'login') => void;
     onSsoLogin: (provider: 'google' | 'facebook') => void;
 }
@@ -20,6 +20,7 @@ const SocialButton: React.FC<{ icon: React.ReactNode, label: string, onClick?: (
 
 export const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchMode, onSsoLogin }) => {
     const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +37,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchMode, 
             setError('Password must be at least 6 characters long.');
             return;
         }
-        const result = onSignUp(username, password);
+        const result = onSignUp(username, email, password);
         if (!result.success) {
             setError(result.message);
         }
@@ -95,6 +96,29 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchMode, 
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full pl-10 pr-3 py-2.5 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     placeholder="Username"
+                                />
+                             </div>
+                        </div>
+                        <div>
+                             <label
+                                htmlFor="email"
+                                className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary sr-only"
+                            >
+                                Email
+                            </label>
+                             <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <EnvelopeIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-10 pr-3 py-2.5 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="Email Address"
                                 />
                              </div>
                         </div>

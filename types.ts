@@ -23,10 +23,10 @@ export interface User {
   id: string;
   username: string;
   password: string;
+  email: string;
   role: UserRole;
   name: string;
   avatarUrl?: string;
-  email?: string;
   address?: string;
   city?: string;
   zipCode?: string;
@@ -215,6 +215,11 @@ export interface PolicyModal {
     content: string;
 }
 
+// Fix: Replaced JSX with React.createElement to resolve parsing errors in a .ts file.
+export const UnverifiedBadge: React.FC = () => (
+    React.createElement('span', { className: "unverified-tag" }, '(unverified)')
+);
+
 export const ChartBarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
     React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" })
@@ -271,7 +276,7 @@ export const UserGroupIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
 
 export const CogIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
-        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5" })
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5" })
     )
 );
 
@@ -586,7 +591,7 @@ export const MicrophoneIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =
 );
 export const MicrophoneSlashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
-        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17.25 9.75v-.375c0-1.621-.624-3.129-1.758-4.242-1.134-1.114-2.621-1.758-4.242-1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375m13.5 0v.375c0 1.621-.624 3.129-1.758 4.242-1.134 1.114-2.621 1.758-4.242 1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375M19.5 10.5v.75c0 4.142-3.358 7.5-7.5 7.5s-7.5-3.358-7.5-7.5v-.75m15 0a9 9 0 00-9-9-9 9 0 00-9 9m18 0l-3.35-3.35m-12.8 0L3 13.65" })
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17.25 9.75v-.375c0-1.621-.624-3.129-1.758-4.242-1.134-1.114-2.621-1.758-4.242-1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375m13.5 0v.375c0 1.621-.624 3.129-1.758-4.242-1.134 1.114-2.621 1.758-4.242 1.758-1.621 0-3.108.644-4.242 1.758-1.134 1.113-1.758 2.621-1.758 4.242v.375M19.5 10.5v.75c0 4.142-3.358 7.5-7.5 7.5s-7.5-3.358-7.5-7.5v-.75m15 0a9 9 0 00-9-9-9 9 0 00-9 9m18 0l-3.35-3.35m-12.8 0L3 13.65" })
     )
 );
 export const VideoCameraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -656,6 +661,6 @@ export const DocumentIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
 );
 export const ArrowPathIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", ...props },
-      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-11.667 0l3.181-3.183a8.25 8.25 0 0111.667 0l3.181 3.183" })
+      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-11.667 0l3.181-3.183a8.25 8.25 0 011.667 0l3.181 3.183" })
     )
 );

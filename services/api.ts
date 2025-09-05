@@ -1,8 +1,10 @@
 /**
- * @file This file defines the entire API contract for the Social Marketplace backend.
- * It serves as a specification for developers, outlining all the necessary
- * endpoints, their expected request parameters, and the format of their responses.
- * All functions are placeholders and should be implemented to make actual HTTP requests.
+ * @file This file defines a potential API contract for a Social Marketplace backend.
+ * 
+ * NOTE: The application is currently running in a client-only mode with mock data.
+ * These API functions are placeholders and are not currently used.
+ * They serve as a specification for future backend development and are not required
+ * for the application to function in its current state.
  */
 
 import type {
@@ -37,10 +39,14 @@ import type {
  * @description Logs in a user with their credentials.
  * @method POST
  * @endpoint /api/auth/login
- * @body { username: string, password: string }
+ * @body { identifier: string, password: string }
  * @response { user: User, token: string }
+ * @businessLogic 
+ * - Validate identifier (can be username or email) and password against the database.
+ * - On success, generate a JWT containing at least the userId and role.
+ * - The backend should check if the user's `isActive` flag is true. If not, return a 403 Forbidden error.
  */
-export const login = async (credentials: { username, password }): Promise<User> => {
+export const login = async (credentials: { identifier, password }): Promise<User> => {
   console.log('API CALL: login', { credentials });
   // MOCK: In a real app, this would make a POST request and return the user object.
   // For now, it's handled client-side. The API spec is for backend integration.
@@ -54,6 +60,10 @@ export const login = async (credentials: { username, password }): Promise<User> 
  * @endpoint /api/auth/sso
  * @body { provider: 'google' | 'facebook', token: string } // The token from the SSO provider
  * @response { user: User, token: string }
+ * @businessLogic
+ * - The backend validates the SSO token with the respective provider.
+ * - It finds an existing user or creates a new one based on the SSO profile.
+ * - Generates a JWT for the user session.
  */
 export const ssoLogin = async (provider: 'google' | 'facebook'): Promise<User> => {
     console.log('API CALL: ssoLogin', { provider });
@@ -65,13 +75,70 @@ export const ssoLogin = async (provider: 'google' | 'facebook'): Promise<User> =
  * @description Registers a new user.
  * @method POST
  * @endpoint /api/auth/signup
- * @body { username: string, password: string }
+ * @body { username: string, email: string, password: string }
  * @response { user: User, token: string }
+ * @businessLogic
+ * - The backend must validate that the username and email are unique.
+ * - The password must be securely hashed before being stored in the database.
+ * - A new user is created with the 'Member' role by default.
+ * - An email verification token/OTP should be generated and sent to the user's email address.
  */
-export const signUp = async (userInfo: { username, password }): Promise<User> => {
+export const signUp = async (userInfo: { username, email, password }): Promise<User> => {
     console.log('API CALL: signUp', { userInfo });
     throw new Error("API function not implemented");
 };
+
+/**
+ * API: Verify Email
+ * @description Verifies a user's email address using an OTP.
+ * @method POST
+ * @endpoint /api/auth/verify-email
+ * @body { otp: string }
+ * @response { success: boolean, message: string }
+ * @authorization Requires user to be logged in.
+ * @businessLogic
+ * - The backend validates the OTP against the one stored for the user.
+ * - On success, the user's `isVerified` flag is set to true.
+ */
+export const verifyEmail = async (otp: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: verifyEmail', { otp });
+    return { success: true };
+};
+
+/**
+ * API: Request Password Reset
+ * @description Initiates the password reset process by sending an OTP to the user's email.
+ * @method POST
+ * @endpoint /api/auth/request-password-reset
+ * @body { email: string }
+ * @response { success: boolean, message: string }
+ * @businessLogic
+ * - The backend finds the user by email.
+ * - Generates a secure, time-limited OTP and stores it for the user.
+ * - Sends an email to the user with the OTP.
+ */
+export const requestPasswordReset = async (email: string): Promise<{ success: boolean }> => {
+    console.log('API CALL: requestPasswordReset', { email });
+    return { success: true };
+};
+
+/**
+ * API: Reset Password
+ * @description Sets a new password for the user after verifying the OTP.
+ * @method POST
+ * @endpoint /api/auth/reset-password
+ * @body { email: string, otp: string, newPassword: string }
+ * @response { success: boolean, message: string }
+ * @businessLogic
+ * - The backend validates the OTP for the given email.
+ * - If the OTP is valid, the user's password is updated (after hashing the new password).
+ * - The OTP is invalidated after use.
+ */
+export const resetPassword = async (data: { email: string, otp: string, newPassword: string }): Promise<{ success: boolean }> => {
+    console.log('API CALL: resetPassword');
+    return { success: true };
+};
+
 
 /**
  * API: Sign Out
@@ -79,6 +146,9 @@ export const signUp = async (userInfo: { username, password }): Promise<User> =>
  * @method POST
  * @endpoint /api/auth/signout
  * @response { success: boolean }
+ * @businessLogic
+ * - If using a token blocklist, add the current JWT to it.
+ * - Clear any session-related cookies if applicable.
  */
 export const signOut = async (): Promise<{ success: boolean }> => {
     console.log('API CALL: signOut');
@@ -118,6 +188,9 @@ export const getUserProfile = async (userId: string): Promise<User> => {
  * @endpoint /api/users/me
  * @body Partial<User> // e.g., { username, email, address, city, zipCode, password }
  * @response { User } // The updated user object
+ * @businessLogic
+ * - If the password is being updated, it must be re-hashed.
+ * - If the username is being updated, uniqueness must be checked again.
  */
 export const updateUserSettings = async (userId: string, settingsData: Partial<User>): Promise<User> => {
     console.log('API CALL: updateUserSettings', { userId, settingsData });
@@ -143,6 +216,9 @@ export const updateUserBankAccount = async (userId: string, bankAccount: BankAcc
  * @method POST
  * @endpoint /api/users/{userIdToFollow}/follow
  * @response { success: boolean }
+ * @businessLogic
+ * - Add the current user's ID to the target user's `pendingFollowerIds`.
+ * - Send a 'follow_request' notification to the target user.
  */
 export const requestFollow = async (userIdToFollow: string): Promise<{ success: boolean }> => {
     console.log('API CALL: requestFollow', { userIdToFollow });
@@ -155,6 +231,10 @@ export const requestFollow = async (userIdToFollow: string): Promise<{ success: 
  * @method POST
  * @endpoint /api/users/follow-requests/{requesterId}/accept
  * @response { success: boolean }
+ * @businessLogic
+ * - Remove `requesterId` from the current user's `pendingFollowerIds`.
+ * - Add the current user's ID to the `requesterId`'s `followingIds`.
+ * - Send a 'follow' notification to the `requesterId`.
  */
 export const acceptFollowRequest = async (requesterId: string): Promise<{ success: boolean }> => {
     console.log('API CALL: acceptFollowRequest', { requesterId });
@@ -167,6 +247,9 @@ export const acceptFollowRequest = async (requesterId: string): Promise<{ succes
  * @method POST
  * @endpoint /api/users/follow-requests/{requesterId}/decline
  * @response { success: boolean }
+ * @businessLogic
+ * - Remove `requesterId` from the current user's `pendingFollowerIds`.
+ * - No notification is sent on decline.
  */
 export const declineFollowRequest = async (requesterId: string): Promise<{ success: boolean }> => {
     console.log('API CALL: declineFollowRequest', { requesterId });
@@ -180,6 +263,8 @@ export const declineFollowRequest = async (requesterId: string): Promise<{ succe
  * @method DELETE
  * @endpoint /api/users/{userIdToUnfollow}/follow
  * @response { success: boolean }
+ * @businessLogic
+ * - Remove `userIdToUnfollow` from the current user's `followingIds`.
  */
 export const unfollowUser = async (userIdToUnfollow: string): Promise<{ success: boolean }> => {
     console.log('API CALL: unfollowUser', { userIdToUnfollow });
@@ -192,6 +277,9 @@ export const unfollowUser = async (userIdToUnfollow: string): Promise<{ success:
  * @method POST
  * @endpoint /api/users/{userIdToBlock}/block
  * @response { success: boolean }
+ * @businessLogic
+ * - Add `userIdToBlock` to the current user's `blockedUserIds`.
+ * - If the current user was following the blocked user, that relationship should be removed.
  */
 export const blockUser = async (userIdToBlock: string): Promise<{ success: boolean }> => {
     console.log('API CALL: blockUser', { userIdToBlock });
@@ -217,6 +305,9 @@ export const unblockUser = async (userIdToUnblock: string): Promise<{ success: b
  * @endpoint /api/users/{userId}/reviews
  * @body { rating: number; comment: string; transactionId?: string }
  * @response { Review }
+ * @businessLogic
+ * - The backend should ensure a user can only review a transaction once.
+ * - If `transactionId` is provided, the `isVerifiedPurchase` flag should be set to true.
  */
 export const addReview = async (userId: string, reviewData: { rating: number; comment: string; transactionId?: string }): Promise<Review> => {
     console.log('API CALL: addReview', { userId, reviewData });
@@ -257,6 +348,11 @@ export const getPostDetails = async (postId: string): Promise<Post> => {
  * @endpoint /api/posts
  * @body { title, content, isAdvert, price, categoryId, mediaUrl?, ... }
  * @response { Post }
+ * @businessLogic
+ * - If `isAdvert` is true, the backend must validate that the user has a linked bank account. If not, return a 400 Bad Request.
+ * - Create the post in the database.
+ * - Send a 'post' notification to all followers of the current user.
+ * - Create an 'Created Post' entry in the user's activity log.
  */
 export const createPost = async (postData: { title: string; content: string; isAdvert: boolean; price?: number; categoryId: string; mediaUrl?: string; mediaType?: 'image' | 'video'; brand?: string; condition?: PostCondition; }): Promise<Post> => {
     console.log('API CALL: createPost', { postData });
@@ -270,6 +366,7 @@ export const createPost = async (postData: { title: string; content: string; isA
  * @endpoint /api/posts/{postId}
  * @body Partial<Post>
  * @response { Post }
+ * @authorization User must be the author of the post.
  */
 export const updatePost = async (postId: string, postData: Partial<Post>): Promise<Post> => {
     console.log('API CALL: updatePost', { postId, postData });
@@ -282,6 +379,7 @@ export const updatePost = async (postId: string, postData: Partial<Post>): Promi
  * @method DELETE
  * @endpoint /api/posts/{postId}
  * @response { success: boolean }
+ * @authorization User must be the author of the post or an Admin/Super Admin.
  */
 export const deletePost = async (postId: string): Promise<{ success: boolean }> => {
     console.log('API CALL: deletePost', { postId });
@@ -294,6 +392,11 @@ export const deletePost = async (postId: string): Promise<{ success: boolean }> 
  * @method POST
  * @endpoint /api/posts/{postId}/like
  * @response { likedBy: string[], dislikedBy: string[] }
+ * @businessLogic
+ * - If the user has disliked the post, the dislike is removed.
+ * - The like is toggled (add/remove user ID from `likedBy`).
+ * - If a like is added (and it's not a self-like), send a 'like' notification to the post author.
+ * - Update the post's `lastActivityTimestamp`.
  */
 export const likePost = async (postId: string): Promise<{ likedBy: string[]; dislikedBy: string[] }> => {
     console.log('API CALL: likePost', { postId });
@@ -306,6 +409,10 @@ export const likePost = async (postId: string): Promise<{ likedBy: string[]; dis
  * @method POST
  * @endpoint /api/posts/{postId}/dislike
  * @response { likedBy: string[], dislikedBy: string[] }
+ * @businessLogic
+ * - If the user has liked the post, the like is removed.
+ * - The dislike is toggled (add/remove user ID from `dislikedBy`).
+ * - No notifications are sent for dislikes.
  */
 export const dislikePost = async (postId: string): Promise<{ likedBy: string[]; dislikedBy: string[] }> => {
     console.log('API CALL: dislikePost', { postId });
@@ -318,6 +425,9 @@ export const dislikePost = async (postId: string): Promise<{ likedBy: string[]; 
  * @method POST
  * @endpoint /api/posts/{postId}/flag
  * @response { success: boolean }
+ * @businessLogic
+ * - Add the current user's ID to the post's `flaggedBy` array.
+ * - Backend should prevent duplicate flags from the same user.
  */
 export const flagPost = async (postId: string): Promise<{ success: boolean }> => {
     console.log('API CALL: flagPost', { postId });
@@ -333,6 +443,14 @@ export const flagPost = async (postId: string): Promise<{ success: boolean }> =>
  * @endpoint /api/posts/{postId}/comments
  * @body { content: string; mediaUrl?: string; parentId?: string | null }
  * @response { Comment }
+ * @businessLogic
+ * - Update the parent post's `lastActivityTimestamp`.
+ * - Parse the comment content for @mentions.
+ * - Notification Logic (do not notify user for their own actions):
+ *   1. **Mentions**: For each valid @mentioned user, send a 'mention' notification.
+ *   2. **Replies**: If `parentId` is present, find the author of the parent comment. If they are not the current user and not already mentioned, send a 'comment' (reply) notification.
+ *   3. **Post Author**: If the post author is not the current user, not mentioned, and not the parent comment author, send a 'comment' notification.
+ * - Create an 'Commented on Post' entry in the user's activity log.
  */
 export const addComment = async (postId: string, commentData: { content: string; mediaUrl?: string }, parentId: string | null): Promise<Comment> => {
     console.log('API CALL: addComment', { postId, commentData, parentId });
@@ -346,6 +464,7 @@ export const addComment = async (postId: string, commentData: { content: string;
  * @endpoint /api/posts/{postId}/comments/{commentId}
  * @body { newContent: string }
  * @response { Comment }
+ * @authorization User must be the author of the comment.
  */
 export const editComment = async (postId: string, commentId: string, newContent: string): Promise<Comment> => {
     console.log('API CALL: editComment', { postId, commentId, newContent });
@@ -358,6 +477,7 @@ export const editComment = async (postId: string, commentId: string, newContent:
  * @method DELETE
  * @endpoint /api/posts/{postId}/comments/{commentId}
  * @response { success: boolean }
+ * @authorization User must be the author of the comment or an Admin/Super Admin.
  */
 export const deleteComment = async (postId: string, commentId: string): Promise<{ success: boolean }> => {
     console.log('API CALL: deleteComment', { postId, commentId });
@@ -370,6 +490,9 @@ export const deleteComment = async (postId: string, commentId: string): Promise<
  * @method POST
  * @endpoint /api/posts/{postId}/comments/{commentId}/like
  * @response { likedBy: string[], dislikedBy: string[] }
+ * @businessLogic
+ * - Toggles the like and removes any dislike from the user.
+ * - If a like is added (and it's not a self-like), send a 'comment_like' notification to the comment author.
  */
 export const likeComment = async (postId: string, commentId: string): Promise<{ likedBy: string[]; dislikedBy: string[] }> => {
     console.log('API CALL: likeComment', { postId, commentId });
@@ -422,6 +545,10 @@ export const getTransactions = async (): Promise<Transaction[]> => {
  * @endpoint /api/transactions
  * @body { postId: string }
  * @response { Transaction }
+ * @businessLogic
+ * - Backend should simulate a payment process (e.g., with a delay and random success/failure).
+ * - On success: Update transaction status to 'In Escrow', send 'system' notifications to both buyer and seller.
+ * - On failure: Update transaction status to 'Cancelled', add a failure reason, and send a 'system' notification to the buyer.
  */
 export const createTransaction = async (postId: string): Promise<Transaction> => {
     console.log('API CALL: createTransaction', { postId });
@@ -435,6 +562,13 @@ export const createTransaction = async (postId: string): Promise<Transaction> =>
  * @endpoint /api/transactions/{transactionId}
  * @body { status?: Transaction['status'], trackingNumber?: string, proofOfShipment?: File }
  * @response { Transaction }
+ * @businessLogic
+ * - **When status changes to 'Completed' (item accepted):**
+ *   - The backend MUST also find the related post (`postId`) and update its `isSold` flag to `true`. This should be an atomic operation.
+ *   - Send a notification to the seller that funds have been released.
+ * - **When status changes to 'Shipped'**:
+ *   - Set the `shippedAt` timestamp.
+ *   - Send a notification to the buyer.
  */
 export const updateTransaction = async (transactionId: string, updates: { status?: Transaction['status'], trackingNumber?: string, proofOfShipment?: File }): Promise<Transaction> => {
     console.log('API CALL: updateTransaction', { transactionId, updates });
@@ -448,6 +582,9 @@ export const updateTransaction = async (transactionId: string, updates: { status
  * @endpoint /api/transactions/{transactionId}/disputes
  * @body { reason: string }
  * @response { Dispute }
+ * @businessLogic
+ * - Change the transaction's status to 'Disputed'.
+ * - Create a new dispute record.
  */
 export const createDispute = async (transactionId: string, reason: string): Promise<Dispute> => {
     console.log('API CALL: createDispute', { transactionId, reason });
@@ -460,6 +597,7 @@ export const createDispute = async (transactionId: string, reason: string): Prom
  * @method GET
  * @endpoint /api/disputes
  * @response { Dispute[] }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const getDisputes = async (): Promise<Dispute[]> => {
     console.log('API CALL: getDisputes');
@@ -498,8 +636,10 @@ export const getChats = async (): Promise<Chat[]> => {
  * @description Starts a new chat or retrieves an existing one.
  * @method POST
  * @endpoint /api/chats
- * @body { postId?: string; userId?: string }
+ * @body { postId?: string; userToMessageId?: string }
  * @response { Chat }
+ * @businessLogic
+ * - The backend should check if a chat already exists between the two users (and for the same post, if applicable) before creating a new one.
  */
 export const startChat = async (options: { postId?: string; userId?: string }): Promise<Chat> => {
     console.log('API CALL: startChat', { options });
@@ -513,6 +653,9 @@ export const startChat = async (options: { postId?: string; userId?: string }): 
  * @endpoint /api/chats/{chatId}/messages
  * @body Omit<Message, 'id' | 'sender' | 'timestamp'>
  * @response { Message }
+ * @businessLogic
+ * - Update the parent chat's `lastMessage` and `lastMessageTimestamp`.
+ * - Send a 'system' (chat) notification to the other party in the chat.
  */
 export const sendMessage = async (chatId: string, messageContent: Omit<Message, 'id' | 'sender' | 'timestamp'>): Promise<Message> => {
     console.log('API CALL: sendMessage', { chatId, messageContent });
@@ -526,6 +669,9 @@ export const sendMessage = async (chatId: string, messageContent: Omit<Message, 
  * @endpoint /api/chats/forward-message
  * @body { originalMessageId: string, targetChatIds: string[] }
  * @response { success: boolean }
+ * @businessLogic
+ * - For each `targetChatId`, create a new message with `isForwarded: true` and the content of the original message.
+ * - This should trigger the same logic as `sendMessage` for each target chat (update timestamps, send notifications).
  */
 export const forwardMessage = async (originalMessageId: string, targetChatIds: string[]): Promise<{ success: boolean }> => {
     console.log('API CALL: forwardMessage', { originalMessageId, targetChatIds });
@@ -579,6 +725,7 @@ export const getActivityLog = async (): Promise<ActivityLog[]> => {
  * @method GET
  * @endpoint /api/admin/users
  * @response { User[] }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const getAllUsers = async (): Promise<User[]> => {
     console.log('API CALL: getAllUsers');
@@ -591,6 +738,7 @@ export const getAllUsers = async (): Promise<User[]> => {
  * @method POST
  * @endpoint /api/admin/users/{userId}/toggle-activation
  * @response { User }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const toggleUserActivation = async (userId: string): Promise<User> => {
     console.log('API CALL: toggleUserActivation', { userId });
@@ -604,6 +752,7 @@ export const toggleUserActivation = async (userId: string): Promise<User> => {
  * @endpoint /api/admin/users/{userId}/ban
  * @body { days: number, reason: string }
  * @response { User }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const banUser = async (userId: string, days: number, reason: string): Promise<User> => {
     console.log('API CALL: banUser', { userId, days, reason });
@@ -616,6 +765,7 @@ export const banUser = async (userId: string, days: number, reason: string): Pro
  * @method POST
  * @endpoint /api/admin/users/{userId}/unban
  * @response { User }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const unbanUser = async (userId: string): Promise<User> => {
     console.log('API CALL: unbanUser', { userId });
@@ -629,6 +779,7 @@ export const unbanUser = async (userId: string): Promise<User> => {
  * @endpoint /api/admin/users/{userId}/role
  * @body { newRole: UserRole }
  * @response { User }
+ * @authorization Requires 'Super Admin' role.
  */
 export const setUserRole = async (userId: string, newRole: UserRole): Promise<User> => {
     console.log('API CALL: setUserRole', { userId, newRole });
@@ -641,6 +792,7 @@ export const setUserRole = async (userId: string, newRole: UserRole): Promise<Us
  * @method POST
  * @endpoint /api/admin/posts/{postId}/toggle-comment-restriction
  * @response { Post }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const togglePostCommentRestriction = async (postId: string): Promise<Post> => {
     console.log('API CALL: togglePostCommentRestriction', { postId });
@@ -649,10 +801,11 @@ export const togglePostCommentRestriction = async (postId: string): Promise<Post
 
 /**
  * API: Resolve Post Flag (Admin)
- * @description Resolves (dismisses) a flag on a post.
+ * @description Resolves (dismisses) a flag on a post by clearing the `flaggedBy` array.
  * @method POST
  * @endpoint /api/admin/posts/{postId}/resolve-flag
  * @response { Post }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const resolvePostFlag = async (postId: string): Promise<Post> => {
     console.log('API CALL: resolvePostFlag', { postId });
@@ -665,6 +818,7 @@ export const resolvePostFlag = async (postId: string): Promise<Post> => {
  * @method POST
  * @endpoint /api/admin/comments/{commentId}/resolve-flag
  * @response { Comment }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const resolveCommentFlag = async (postId: string, commentId: string): Promise<Comment> => {
     console.log('API CALL: resolveCommentFlag', { postId, commentId });
@@ -678,6 +832,7 @@ export const resolveCommentFlag = async (postId: string, commentId: string): Pro
  * @endpoint /api/admin/transactions/{transactionId}/action
  * @body { action: AdminAction['action'], details?: any }
  * @response { Transaction }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const performAdminTransactionAction = async (transactionId: string, action: AdminAction['action'], details?: any): Promise<Transaction> => {
     console.log('API CALL: performAdminTransactionAction', { transactionId, action, details });
@@ -691,6 +846,7 @@ export const performAdminTransactionAction = async (transactionId: string, actio
  * @endpoint /api/admin/maintenance
  * @body { isEnabled: boolean }
  * @response { maintenanceMode: boolean }
+ * @authorization Requires 'Super Admin' role.
  */
 export const toggleMaintenanceMode = async (isEnabled: boolean): Promise<{ maintenanceMode: boolean }> => {
     console.log('API CALL: toggleMaintenanceMode', { isEnabled });
@@ -707,6 +863,7 @@ export const toggleMaintenanceMode = async (isEnabled: boolean): Promise<{ maint
  * @endpoint /api/ai/analyze-dispute
  * @body { Dispute }
  * @response { AIAnalysis }
+ * @authorization Requires 'Admin' or 'Super Admin' role.
  */
 export const analyzeDisputeWithAI = async (dispute: Dispute): Promise<AIAnalysis> => {
     console.log('API CALL: analyzeDisputeWithAI');
@@ -738,3 +895,18 @@ export const generateAvatarWithAI = async (prompt: string): Promise<string[]> =>
     console.log('API CALL: generateAvatarWithAI', { prompt });
     return [];
 };
+
+/**
+ * API: Scheduled Job - Auto-complete Transactions
+ * @description This is not a direct API endpoint, but a scheduled task (e.g., a cron job) the backend must run.
+ * @task
+ * - Periodically query for transactions where `status` is 'Delivered' and the `inspectionPeriodEnds` date has passed.
+ * - For each such transaction:
+ *   1. Update its `status` to 'Completed'.
+ *   2. Update the related post's `isSold` flag to `true`.
+ *   3. Send 'system' notifications to both the buyer and seller about the automatic completion.
+ */
+// This is a conceptual function representing a backend job.
+export const scheduledAutoComplete = async () => {
+    console.log('BACKEND JOB: Running scheduledAutoComplete');
+}

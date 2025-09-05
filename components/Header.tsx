@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { UserRole, View, Notification, Chat, User, Post } from '../types';
-import { Bars3Icon, BellIcon, EnvelopeIcon, SunIcon, MoonIcon, UserGroupIcon, MagnifyingGlassIcon, ChevronLeftIcon, UsersIcon, DocumentTextIcon, ChevronDownIcon, CommunityIcon, UserPlusIcon, UserCircleIcon } from '../types';
+import { Bars3Icon, BellIcon, EnvelopeIcon, SunIcon, MoonIcon, UserGroupIcon, MagnifyingGlassIcon, ChevronLeftIcon, UsersIcon, DocumentTextIcon, ChevronDownIcon, CommunityIcon, UserPlusIcon, UserCircleIcon, UnverifiedBadge } from '../types';
 import { NotificationPanel } from './NotificationPanel';
 import { FollowingPanel } from './FollowingPanel';
 import { FollowRequestPanel } from './FollowRequestPanel';
+import { VerificationBadge } from './VerificationBadge';
 
 
 interface HeaderProps {
@@ -130,7 +132,10 @@ const SmartSearch: React.FC<SmartSearchProps> = ({
                                 >
                                     <img src={item.avatarUrl} alt={item.name} className="w-8 h-8 rounded-full" />
                                     <div>
-                                        <p className="font-semibold text-sm">{item.name}</p>
+                                        <div className="flex items-center gap-1">
+                                            <p className="font-semibold text-sm">{item.name}</p>
+                                            {item.isVerified ? <VerificationBadge /> : <UnverifiedBadge />}
+                                        </div>
                                         <p className="text-xs text-gray-500">@{item.username}</p>
                                     </div>
                                 </button>

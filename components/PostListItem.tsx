@@ -1,6 +1,7 @@
+
 import React, { useMemo } from 'react';
 import type { Post, User } from '../types';
-import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleBottomCenterTextIcon, UserCircleIcon, ArrowUpTrayIcon, PinIcon, FlagIcon } from '../types';
+import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleBottomCenterTextIcon, UserCircleIcon, ArrowUpTrayIcon, PinIcon, FlagIcon, UnverifiedBadge } from '../types';
 import { VerificationBadge } from './VerificationBadge';
 import { StarRating } from './StarRating';
 
@@ -148,7 +149,7 @@ export const PostListItem: React.FC<PostListItemProps> = ({ post, isSold, catego
                 <div>
                     <div className="flex items-center gap-1">
                         <p className="font-bold text-text-primary dark:text-dark-text-primary hover:underline">{post.author}</p>
-                        {author?.isVerified && <VerificationBadge />}
+                        {author?.isVerified ? <VerificationBadge /> : <UnverifiedBadge />}
                     </div>
                     <p className="text-xs text-text-secondary dark:text-dark-text-secondary">
                       {timeAgo(post.timestamp)}

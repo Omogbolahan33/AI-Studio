@@ -159,9 +159,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-surface rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold text-text-primary">{isEditMode ? 'Edit Post' : 'Create a New Post'}</h2>
+          <h2 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">{isEditMode ? 'Edit Post' : 'Create a New Post'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -171,9 +171,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           <div className="p-6 space-y-4 overflow-y-auto">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-text-secondary">Title</label>
+              <label htmlFor="title" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Title</label>
               <div className="relative">
-                <input id="title" type="text" value={title} maxLength={TITLE_LIMIT} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required />
+                <input id="title" type="text" value={title} maxLength={TITLE_LIMIT} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" required />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-secondary">{title.length}/{TITLE_LIMIT}</span>
               </div>
             </div>
@@ -181,12 +181,12 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
             <div>
               <div className="flex items-center space-x-3">
                 <input id="isAdvert" type="checkbox" checked={isAdvert} onChange={(e) => setIsAdvert(e.target.checked)} className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary" />
-                <label htmlFor="isAdvert" className="text-sm font-medium text-text-primary">This is an advertisement</label>
+                <label htmlFor="isAdvert" className="text-sm font-medium text-text-primary dark:text-dark-text-primary">This is an advertisement</label>
               </div>
             </div>
              <div>
-              <label htmlFor="category" className="block text-sm font-medium text-text-secondary">Category</label>
-              <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required>
+              <label htmlFor="category" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Category</label>
+              <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:text-dark-text-primary" required>
                 <option value="" disabled>Select a category...</option>
                 {availableCategories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -197,16 +197,16 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
             {isAdvert && (
               <>
                 <div>
-                    <label htmlFor="price" className="block text-sm font-medium text-text-secondary">Price (₦)</label>
-                    <input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" placeholder="e.g., 50.00" min="0.01" step="0.01" required={isAdvert} />
+                    <label htmlFor="price" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Price (₦)</label>
+                    <input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" placeholder="e.g., 50.00" min="0.01" step="0.01" required={isAdvert} />
                 </div>
                 <div>
-                  <label htmlFor="brand" className="block text-sm font-medium text-text-secondary">Brand (Optional)</label>
-                  <input id="brand" type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" placeholder="e.g., Apple, Nike" />
+                  <label htmlFor="brand" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Brand (Optional)</label>
+                  <input id="brand" type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" placeholder="e.g., Apple, Nike" />
                 </div>
                 <div>
-                  <label htmlFor="condition" className="block text-sm font-medium text-text-secondary">Condition</label>
-                  <select id="condition" value={condition} onChange={(e) => setCondition(e.target.value as PostCondition)} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
+                  <label htmlFor="condition" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Condition</label>
+                  <select id="condition" value={condition} onChange={(e) => setCondition(e.target.value as PostCondition)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:text-dark-text-primary">
                     <option value="New">New</option>
                     <option value="Used - Like New">Used - Like New</option>
                     <option value="Used - Good">Used - Good</option>
@@ -255,9 +255,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
             )}
             
             <div>
-                <label htmlFor="content" className="block text-sm font-medium text-text-secondary">Content</label>
-                <div className="mt-1 border border-gray-300 rounded-md shadow-sm relative">
-                    <div className="flex items-center space-x-1 border-b p-2 bg-gray-50">
+                <label htmlFor="content" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Content</label>
+                <div className="mt-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm relative bg-surface dark:bg-dark-surface">
+                    <div className="flex items-center space-x-1 border-b p-2 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                         <ToolbarButton onClick={() => handleFormat('bold')} title="Bold"><BoldIcon className="w-5 h-5" /></ToolbarButton>
                         <ToolbarButton onClick={() => handleFormat('italic')} title="Italic"><ItalicIcon className="w-5 h-5" /></ToolbarButton>
                         <ToolbarButton onClick={() => handleFormat('justifyLeft')} title="Align Left"><Bars3BottomLeftIcon className="w-5 h-5" /></ToolbarButton>
@@ -279,7 +279,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ categories, ex
                         ref={editorRef}
                         id="content"
                         contentEditable={!isGenerating}
-                        className={`w-full p-3 min-h-[150px] text-text-primary focus:outline-none ${isGenerating ? 'blur-sm' : ''}`}
+                        className={`w-full p-3 min-h-[150px] text-text-primary dark:text-dark-text-primary focus:outline-none ${isGenerating ? 'blur-sm' : ''}`}
                     />
                 </div>
             </div>

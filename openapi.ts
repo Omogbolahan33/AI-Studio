@@ -1,7 +1,9 @@
 /**
- * @file This file provides the OpenAPI 3.0 specification for the Social Marketplace backend as a TypeScript object.
- * It serves as a machine-readable source of truth for the API's contract, detailing all endpoints,
- * data schemas, and security requirements.
+ * @file This file provides a potential OpenAPI 3.0 specification for the Social Marketplace backend.
+ * 
+ * NOTE: The application is currently running in a client-only mode with mock data.
+ * This specification is a blueprint for future backend development and is not currently in use
+ * or required for the application to function.
  *
  * For a real-world project, it's recommended to install openapi-types for type safety:
  * npm install --save-dev openapi-types
@@ -65,7 +67,7 @@ export const openApiSpec: any = {
           role: { $ref: '#/components/schemas/UserRole' },
           name: { type: 'string' },
           avatarUrl: { type: 'string', format: 'uri', nullable: true },
-          email: { type: 'string', format: 'email', nullable: true },
+          email: { type: 'string', format: 'email' },
           address: { type: 'string', nullable: true },
           city: { type: 'string', nullable: true },
           zipCode: { type: 'string', nullable: true },
@@ -120,6 +122,7 @@ export const openApiSpec: any = {
           pinnedAt: { type: 'string', format: 'date-time', nullable: true },
           flaggedBy: { type: 'array', items: { type: 'string' } },
           isCommentingRestricted: { type: 'boolean' },
+          isSold: { type: 'boolean' },
         },
       },
       Transaction: {
@@ -171,10 +174,42 @@ export const openApiSpec: any = {
       LoginPayload: {
         type: 'object',
         properties: {
-          username: { type: 'string' },
+          identifier: { type: 'string', description: 'Username or email address' },
           password: { type: 'string' },
         },
-        required: ['username', 'password'],
+        required: ['identifier', 'password'],
+      },
+      SignUpPayload: {
+        type: 'object',
+        properties: {
+          username: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          password: { type: 'string' },
+        },
+        required: ['username', 'email', 'password'],
+      },
+      VerifyEmailPayload: {
+        type: 'object',
+        properties: {
+          otp: { type: 'string' }
+        },
+        required: ['otp']
+      },
+      RequestPasswordResetPayload: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' }
+        },
+        required: ['email']
+      },
+      ResetPasswordPayload: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' },
+          otp: { type: 'string' },
+          newPassword: { type: 'string' },
+        },
+        required: ['email', 'otp', 'newPassword']
       },
       CreatePostPayload: {
         type: 'object',
@@ -213,6 +248,7 @@ export const openApiSpec: any = {
       post: {
         tags: ['Auth'],
         summary: 'Login User',
+        description: 'Validates user credentials and returns a JWT for session management. Checks if the user is active.',
         requestBody: {
           required: true,
           content: {
@@ -237,6 +273,7 @@ export const openApiSpec: any = {
             },
           },
           '401': { description: 'Invalid credentials' },
+          '403': { description: 'User account is deactivated' },
         },
       },
     },
@@ -244,25 +281,74 @@ export const openApiSpec: any = {
         post: {
             tags: ['Auth'],
             summary: 'Sign Up a new user',
+            description: 'Registers a new user. The backend must validate that the username and email are unique and securely hash the password.',
             requestBody: {
                 required: true,
-                content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginPayload' } } }
+                content: { 'application/json': { schema: { $ref: '#/components/schemas/SignUpPayload' } } }
             },
             responses: {
                 '201': { description: 'User created successfully', content: { 'application/json': { schema: { properties: { user: { $ref: '#/components/schemas/User' }, token: { type: 'string' } } } } } },
-                '400': { description: 'Invalid input or username taken' }
+                '400': { description: 'Invalid input or username/email taken' }
             }
         }
+    },
+    '/auth/verify-email': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Verify email with OTP',
+        description: 'Verifies the logged-in user\'s email address. Authorization: Requires user token.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/VerifyEmailPayload' }}}
+        },
+        responses: {
+          '200': { description: 'Email verified successfully' },
+          '400': { description: 'Invalid OTP' }
+        }
+      }
+    },
+    '/auth/request-password-reset': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Request password reset',
+        description: 'Sends an OTP to the user\'s email address to initiate a password reset.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestPasswordResetPayload' }}}
+        },
+        responses: {
+          '200': { description: 'Password reset code sent' },
+          '404': { description: 'Email not found' }
+        }
+      }
+    },
+    '/auth/reset-password': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Reset password with OTP',
+        description: 'Sets a new password after verifying the OTP.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/ResetPasswordPayload' }}}
+        },
+        responses: {
+          '200': { description: 'Password has been reset successfully' },
+          '400': { description: 'Invalid OTP or email' }
+        }
+      }
     },
     '/users/me': {
         get: {
             tags: ['User'],
             summary: 'Get current user profile',
+            description: 'Fetches the complete profile for the user authenticated by the bearer token.',
             responses: { '200': { description: 'Current user data', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } } }
         },
         put: {
             tags: ['User'],
             summary: 'Update current user settings',
+            description: 'Updates user profile information. If a password is included, it must be re-hashed.',
             requestBody: {
                 content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } // Should be a partial schema in a real app
             },
@@ -281,11 +367,13 @@ export const openApiSpec: any = {
         get: {
             tags: ['Posts'],
             summary: 'Get all posts',
+            description: 'Fetches posts based on various filters and sorting criteria.',
             responses: { '200': { description: 'A list of posts', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Post' } } } } } }
         },
         post: {
             tags: ['Posts'],
             summary: 'Create a new post',
+            description: "Creates a new post. Business logic: If `isAdvert` is true, the user must have a bank account. After creation, a 'post' notification is sent to all followers.",
             requestBody: {
                 content: { 'application/json': { schema: { $ref: '#/components/schemas/CreatePostPayload' } } }
             },
@@ -302,6 +390,7 @@ export const openApiSpec: any = {
         put: {
             tags: ['Posts'],
             summary: 'Update a post',
+            description: 'Authorization: User must be the author of the post.',
             parameters: [{ name: 'postId', in: 'path', required: true, schema: { type: 'string' } }],
             requestBody: {
                  content: { 'application/json': { schema: { $ref: '#/components/schemas/CreatePostPayload' } } }
@@ -311,6 +400,7 @@ export const openApiSpec: any = {
         delete: {
             tags: ['Posts'],
             summary: 'Delete a post',
+            description: 'Authorization: User must be the author of the post or have an Admin/Super Admin role.',
             parameters: [{ name: 'postId', in: 'path', required: true, schema: { type: 'string' } }],
             responses: { '204': { description: 'Post deleted' } }
         }
@@ -319,6 +409,7 @@ export const openApiSpec: any = {
         post: {
             tags: ['Posts'],
             summary: 'Like a post',
+            description: "Toggles a like on a post. Business logic: Removes any existing dislike from the user. If a like is added, sends a 'like' notification to the post author and updates the post's `lastActivityTimestamp`.",
             parameters: [{ name: 'postId', in: 'path', required: true, schema: { type: 'string' } }],
             responses: { '200': { description: 'Post liked/unliked' } }
         }
@@ -327,6 +418,7 @@ export const openApiSpec: any = {
         post: {
             tags: ['Comments'],
             summary: 'Add a comment to a post',
+            description: "Adds a comment. Business Logic: Updates the post's `lastActivityTimestamp`. Sends notifications for mentions, replies, and to the post author as applicable.",
             parameters: [{ name: 'postId', in: 'path', required: true, schema: { type: 'string' } }],
             requestBody: {
                 content: { 'application/json': { schema: { $ref: '#/components/schemas/AddCommentPayload' } } }
@@ -343,16 +435,30 @@ export const openApiSpec: any = {
         post: {
             tags: ['Transactions'],
             summary: 'Create a transaction from a post',
+            description: "Initiates a purchase. Business logic: Backend simulates payment processing and sends notifications to buyer/seller on success or failure.",
             requestBody: {
                 content: { 'application/json': { schema: { type: 'object', properties: { postId: { type: 'string' } } } } }
             },
             responses: { '201': { description: 'Transaction created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Transaction' } } } } }
         }
     },
+    '/transactions/{transactionId}': {
+        put: {
+            tags: ['Transactions'],
+            summary: 'Update transaction status',
+            description: "Updates a transaction. Business Logic: If status is updated to 'Completed', the related post's `isSold` flag MUST be set to true in the same database transaction.",
+            parameters: [{ name: 'transactionId', in: 'path', required: true, schema: { type: 'string' } }],
+            requestBody: {
+                content: { 'application/json': { schema: { properties: { status: { $ref: '#/components/schemas/TransactionStatus' }, trackingNumber: { type: 'string' } } } } }
+            },
+            responses: { '200': { description: 'Transaction updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/Transaction' } } } } }
+        }
+    },
      '/disputes': {
         get: {
             tags: ['Admin'],
             summary: 'Get all disputes (Admin)',
+            description: "Authorization: Requires 'Admin' or 'Super Admin' role.",
             responses: { '200': { description: 'List of all disputes', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Dispute' } } } } } }
         }
     },
@@ -367,6 +473,7 @@ export const openApiSpec: any = {
         post: {
             tags: ['Chat'],
             summary: 'Send a message',
+            description: "Sends a chat message. Business Logic: Updates the chat's `lastMessage` and `lastMessageTimestamp`. Sends a notification to the other user in the chat.",
             parameters: [{ name: 'chatId', in: 'path', required: true, schema: { type: 'string' } }],
             requestBody: {
                 content: { 'application/json': { schema: { type: 'object', properties: { text: { type: 'string' } } } } }
@@ -378,6 +485,7 @@ export const openApiSpec: any = {
         get: {
             tags: ['Admin'],
             summary: 'Get all users',
+            description: "Authorization: Requires 'Admin' or 'Super Admin' role.",
             responses: { '200': { description: 'List of all users', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
         }
     },
@@ -385,6 +493,7 @@ export const openApiSpec: any = {
         post: {
             tags: ['Admin'],
             summary: 'Ban a user',
+            description: "Authorization: Requires 'Admin' or 'Super Admin' role.",
             parameters: [{ name: 'userId', in: 'path', required: true, schema: { type: 'string' } }],
             requestBody: {
                 content: { 'application/json': { schema: { type: 'object', properties: { days: { type: 'number' }, reason: { type: 'string' } } } } }
@@ -396,7 +505,7 @@ export const openApiSpec: any = {
       post: {
         tags: ['AI'],
         summary: 'Analyze a dispute with AI (Backend Proxy)',
-        description: 'The backend forwards the dispute data to the Gemini API for analysis.',
+        description: "The backend forwards the dispute data to the Gemini API for analysis. Authorization: Requires 'Admin' or 'Super Admin' role.",
         requestBody: {
           required: true,
           content: {

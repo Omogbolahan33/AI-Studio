@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../types';
 import { PaperAirplaneIcon, MicrophoneIcon, FaceSmileIcon, XMarkIcon, StopIcon } from '../types';
@@ -124,7 +125,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, replyingTo, onCl
                 }
               }}
               placeholder="Type a message..."
-              className="w-full p-2 border-none bg-gray-100 dark:bg-gray-700 rounded-xl resize-none focus:ring-0 text-sm max-h-24"
+              className="w-full p-2 border-none bg-gray-100 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-xl resize-none focus:ring-0 text-sm max-h-24"
               rows={1}
             />
           )}

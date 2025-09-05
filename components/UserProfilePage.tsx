@@ -1,8 +1,7 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Review, UserRole, Transaction } from '../types';
-import { UserCircleIcon, ChatBubbleOvalLeftEllipsisIcon, UserPlusIcon, NoSymbolIcon, StopCircleIcon, CheckCircleIcon, StarIcon, HandThumbUpIcon, ChatBubbleBottomCenterTextIcon, UserMinusIcon, ArrowUpIcon, ArrowDownIcon } from '../types';
+import { UserCircleIcon, ChatBubbleOvalLeftEllipsisIcon, UserPlusIcon, NoSymbolIcon, StopCircleIcon, CheckCircleIcon, StarIcon, HandThumbUpIcon, ChatBubbleBottomCenterTextIcon, UserMinusIcon, ArrowUpIcon, ArrowDownIcon, UnverifiedBadge } from '../types';
 import { PostListItem } from './PostListItem';
 import { CommentItem } from './CommentItem';
 import { UserList } from './UserList';
@@ -44,7 +43,6 @@ interface UserProfilePageProps {
   onTogglePostCommentRestriction: (postId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
-// Fix: Add onToggleSoldStatus to UserProfilePageProps
   onToggleSoldStatus: (postId: string) => void;
 }
 
@@ -103,7 +101,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, currentUser, stats,
                 <div className="flex-1 text-center md:text-left">
                     <div className="flex items-center justify-center md:justify-start gap-2">
                         <h2 className="text-3xl font-bold text-text-primary dark:text-dark-text-primary">{user.name}</h2>
-                        {user.isVerified && <VerificationBadge />}
+                        {user.isVerified ? <VerificationBadge /> : <UnverifiedBadge />}
                     </div>
                      <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
                         <StarRating rating={stats.avgRating} />
@@ -247,7 +245,7 @@ const ProfileTabs: React.FC<{ activeTab: ProfileTab; onTabChange: (tab: ProfileT
 );
 
 
-export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, transactions, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onAddComment, onEditComment, onDeleteComment, onSetUserRole, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {
+export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts, transactions, users, currentUser, onClose, onStartChat, onRequestFollow, onUnfollow, onCancelFollowRequest, onToggleBlock, onToggleActivation, onBanUser, onUnbanUser, onViewProfile, onLike, onDislike, onAddReview, onSelectPost, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, onAddComment, onEditComment, onDeleteComment, onSetUserRole, onTogglePostCommentRestriction, onLikeComment, onDislikeComment, onToggleSoldStatus }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('Topics');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
@@ -321,6 +319,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, allPosts
                             onAddComment={onAddComment}
                             onEditComment={onEditComment}
                             onDeleteComment={onDeleteComment}
+                            onStartReply={() => onSelectPost(post)}
                             onFlagComment={onFlagComment}
                             onResolveCommentFlag={onResolveCommentFlag}
                             onLikeComment={onLikeComment}

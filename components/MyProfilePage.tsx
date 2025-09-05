@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Transaction, Dispute, Comment, ActivityLog, Review } from '../types';
 import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon, MagnifyingGlassIcon, ArrowDownIcon, ArrowUpIcon } from '../types';
@@ -43,7 +41,6 @@ interface MyProfilePageProps {
   onTogglePostCommentRestriction: (postId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
-// Fix: Add onToggleSoldStatus to MyProfilePageProps
   onToggleSoldStatus: (postId: string) => void;
 }
 
@@ -87,8 +84,8 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onDislike = () => {},
     onViewProfile = () => {},
     onAddComment,
-    onEditComment,
-    onDeleteComment,
+    onEditComment = () => {},
+    onDeleteComment = () => {},
     onUnfollow,
     onStartChat,
     onAddReview,
@@ -100,7 +97,8 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onResolveCommentFlag,
     onTogglePostCommentRestriction,
     onLikeComment,
-    onDislikeComment
+    onDislikeComment,
+    onToggleSoldStatus
 }) => {
     const [activeTab, setActiveTab] = useState<ProfileTab>('Activity');
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -133,13 +131,11 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
             );
         }
 
-        transactions.sort((a, b) => {
+        return [...transactions].sort((a, b) => {
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
             return transactionSort === 'newest' ? dateB - dateA : dateA - dateB;
         });
-
-        return transactions;
     }, [allTransactions, currentUser.name, transactionFilter, transactionSearchTerm, transactionSort]);
     
     const stats = useMemo(() => {
@@ -201,16 +197,17 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                                         tabIndex={0}
                                         className="w-full text-left bg-surface dark:bg-dark-surface p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
-                                        <p className="text-sm text-text-secondary mb-2">You commented on: <span className="font-semibold">{comment.postTitle}</span> by <span className="font-semibold">{comment.postAuthor}</span></p>
-                                        <CommentItem
+                                        <p className="text-sm text-text-secondary dark:text-dark-text-secondary mb-2">You commented on: <span className="font-semibold">{comment.postTitle}</span></p>
+                                        <CommentItem 
                                             comment={comment}
                                             postId={comment.postId}
-                                            users={users}
                                             currentUser={currentUser}
+                                            users={users}
                                             onViewProfile={onViewProfile}
                                             onAddComment={onAddComment}
-                                            onEditComment={onEditComment ? onEditComment : () => {}}
-                                            onDeleteComment={onDeleteComment ? onDeleteComment : () => {}}
+                                            onEditComment={onEditComment}
+                                            onDeleteComment={onDeleteComment}
+                                            onStartReply={() => onSelectPost(post)}
                                             onFlagComment={onFlagComment}
                                             onResolveCommentFlag={onResolveCommentFlag}
                                             onLikeComment={onLikeComment}
@@ -224,9 +221,9 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                 ) : <p className="text-center text-text-secondary py-8">You have no recent activity.</p>;
             case 'Transactions':
                 return (
-                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow">
-                        <div className="p-4 bg-gray-50 dark:bg-gray-700/50 flex flex-col sm:flex-row items-center gap-4 border-b dark:border-gray-600">
-                            <div className="relative w-full sm:flex-1">
+                    <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                             <div className="relative w-full sm:flex-1">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -235,135 +232,117 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                                     placeholder="Search by item, ID, or user..."
                                     value={transactionSearchTerm}
                                     onChange={(e) => setTransactionSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 w-full border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="pl-10 pr-4 py-2 w-full border dark:border-gray-600 rounded-lg bg-surface dark:bg-dark-surface dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <select
-                                    value={transactionFilter}
-                                    aria-label="Filter transactions"
-                                    onChange={(e) => setTransactionFilter(e.target.value as any)}
-                                    className="py-2 px-3 w-full sm:w-auto border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                                >
-                                    <option value="all">All Transactions</option>
-                                    <option value="purchases">My Purchases</option>
-                                    <option value="sales">My Sales</option>
+                                <select value={transactionFilter} onChange={(e) => setTransactionFilter(e.target.value as any)} className="py-2 px-3 w-full sm:w-auto border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm">
+                                    <option value="all">All</option>
+                                    <option value="purchases">Purchases</option>
+                                    <option value="sales">Sales</option>
                                 </select>
-                                <button
-                                    onClick={() => setTransactionSort(prev => prev === 'newest' ? 'oldest' : 'newest')}
-                                    className="p-2 border rounded-lg bg-surface dark:bg-dark-surface hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                                    title={`Sort by ${transactionSort === 'newest' ? 'oldest' : 'newest'}`}
-                                >
-                                    {transactionSort === 'newest' ? <ArrowDownIcon className="w-5 h-5" /> : <ArrowUpIcon className="w-5 h-5" />}
-                                </button>
+                                <select value={transactionSort} onChange={(e) => setTransactionSort(e.target.value as any)} className="py-2 px-3 w-full sm:w-auto border rounded-lg bg-surface dark:bg-dark-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm">
+                                    <option value="newest">Newest</option>
+                                    <option value="oldest">Oldest</option>
+                                </select>
                             </div>
                         </div>
-                        {displayedTransactions.length > 0 ? (
+                         {displayedTransactions.length > 0 ? (
                             <TransactionsTable transactions={displayedTransactions} onSelectTransaction={onSelectTransaction} />
-                        ) : (
-                            <p className="text-center text-text-secondary py-8">No transactions found.</p>
-                        )}
+                         ) : <p className="text-center text-text-secondary py-8">You have no transactions that match your criteria.</p>}
                     </div>
-                );
+                )
             case 'Disputes':
                 return userDisputes.length > 0 ? (
-                     <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6"><DisputesTable disputes={userDisputes} onDisputeSelect={onDisputeSelect} /></div>
+                    <DisputesTable disputes={userDisputes} onDisputeSelect={onDisputeSelect} />
                 ) : <p className="text-center text-text-secondary py-8">You have no disputes.</p>;
             case 'Followers':
-                 return <UserList users={followers} currentUser={currentUser} onViewProfile={onViewProfile} onStartChat={onStartChat} onUnfollow={onUnfollow} emptyStateMessage="You don't have any followers yet." />;
+                return <UserList users={followers} currentUser={currentUser} onViewProfile={onViewProfile} onStartChat={onStartChat} onUnfollow={onUnfollow} emptyStateMessage="You don't have any followers yet." />;
             case 'Following':
-                 return <UserList users={following} currentUser={currentUser} onViewProfile={onViewProfile} onStartChat={onStartChat} onUnfollow={onUnfollow} emptyStateMessage="You are not following anyone yet." />;
+                 return <UserList users={following} currentUser={currentUser} onViewProfile={onViewProfile} onStartChat={onStartChat} onUnfollow={onUnfollow} emptyStateMessage="You aren't following anyone yet." />;
             case 'Reviews':
                 return <ReviewsList reviews={currentUser.reviews} users={users} />;
             case 'Activity Log':
                 return activityLog.length > 0 ? (
-                    <div className="bg-surface dark:bg-dark-surface rounded-lg shadow p-4 sm:p-6">
-                        <ul className="space-y-4">
-                            {activityLog.map(log => (
-                                <li key={log.id} className="border-b pb-2">
-                                    <p className="font-semibold text-text-primary">{log.action}: <span className="font-normal">{log.details}</span></p>
-                                    <p className="text-xs text-text-secondary">{new Date(log.timestamp).toLocaleString()}</p>
-                                </li>
-                            ))}
-                        </ul>
+                    <div className="space-y-3">
+                        {activityLog.map(log => (
+                            <div key={log.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center space-x-3 text-sm">
+                                <ClockIcon className="w-5 h-5 text-text-secondary flex-shrink-0"/>
+                                <div>
+                                    <span className="font-semibold">{log.action}:</span>
+                                    <span className="text-text-secondary ml-1">{log.details}</span>
+                                </div>
+                                <span className="text-xs text-text-secondary ml-auto flex-shrink-0">{new Date(log.timestamp).toLocaleString()}</span>
+                            </div>
+                        ))}
                     </div>
-                ) : <p className="text-center text-text-secondary py-8">Your activity log is empty.</p>;
+                ) : <p className="text-center text-text-secondary py-8">No activity to show.</p>;
             case 'Settings':
                 return <UserSettingsForm currentUser={currentUser} onUpdateSettings={onUpdateSettings} />;
+            default:
+                return null;
         }
     }
-    
+
     return (
-        <div className="p-4 sm:p-6">
-            <div className="flex flex-col items-center space-y-4 mb-6">
-                 <div className="relative group flex-shrink-0">
-                    {currentUser.avatarUrl ? (
-                        <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover" />
-                    ) : (
-                        <UserCircleIcon className="w-24 h-24 text-gray-400" />
-                    )}
-                    <button 
-                        onClick={() => setIsAvatarModalOpen(true)}
-                        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center rounded-full transition-opacity duration-300 text-white opacity-0 group-hover:opacity-100"
-                        aria-label="Change profile picture"
-                    >
-                        <PencilIcon className="w-8 h-8" />
-                    </button>
-                </div>
-                <div className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                         <h1 className="text-3xl font-bold text-text-primary dark:text-dark-text-primary">{currentUser.name}</h1>
-                         {currentUser.isVerified && <VerificationBadge />}
+        <div className="max-w-7xl mx-auto">
+            {isAvatarModalOpen && <UpdateAvatarModal onClose={() => setIsAvatarModalOpen(false)} onSave={handleUpdateAvatar} />}
+            <div className="bg-surface dark:bg-dark-surface p-6 rounded-lg shadow-md mb-6">
+                <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+                    <div className="relative group flex-shrink-0">
+                        {currentUser.avatarUrl ? (
+                            <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover" />
+                        ) : (
+                            <UserCircleIcon className="w-24 h-24 text-gray-400" />
+                        )}
+                        <button onClick={() => setIsAvatarModalOpen(true)} className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center rounded-full transition-opacity">
+                             <PencilIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"/>
+                        </button>
                     </div>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                        <StarRating rating={stats.avgRating} />
+                    <div className="flex-1 text-center md:text-left">
+                        <div className="flex items-center justify-center md:justify-start gap-2">
+                            <h1 className="text-3xl font-bold text-text-primary dark:text-dark-text-primary">{currentUser.name}</h1>
+                            {currentUser.isVerified ? <VerificationBadge /> : null}
+                        </div>
+                        <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
+                            <StarRating rating={stats.avgRating} />
+                            {currentUser.reviews.length > 0 && (
+                                <span className="text-sm text-text-secondary dark:text-dark-text-secondary">({currentUser.reviews.length} reviews)</span>
+                            )}
+                        </div>
+                        <p className="text-md text-text-secondary dark:text-dark-text-secondary">@{currentUser.username}</p>
                     </div>
-                    <p className="text-md text-text-secondary dark:text-dark-text-secondary">@{currentUser.username}</p>
                 </div>
-                 <div className="w-full max-w-lg grid grid-cols-2 md:grid-cols-3 gap-3 pt-4">
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <button onClick={() => setActiveTab('Reviews')} className="text-left w-full rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary transition-colors">
                         <ProfileStat value={currentUser.reviews.length} label="Reviews" icon={<StarIcon className="w-6 h-6" />} />
                     </button>
-                    <ProfileStat value={stats.totalLikes} label="Likes Received" icon={<HandThumbUpIcon className="w-6 h-6" />} />
-                    <button onClick={() => setActiveTab('Activity')} className="text-left w-full rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary transition-colors">
-                        <ProfileStat value={stats.totalComments} label="Comments Received" icon={<ChatBubbleBottomCenterTextIcon className="w-6 h-6" />} />
+                    <ProfileStat value={userPosts.length} label="Total Posts" icon={<DocumentReportIcon className="w-6 h-6" />} />
+                    <button onClick={() => setActiveTab('Followers')} className="text-left w-full rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary transition-colors">
+                        <ProfileStat value={followers.length} label="Followers" icon={<UsersIcon className="w-6 h-6" />} />
                     </button>
+                    <ProfileStat value={allTransactions.filter(t => t.seller === currentUser.name && t.status === 'Completed').length} label="Items Sold" icon={<CurrencyDollarIcon className="w-6 h-6" />} />
+                </div>
+            </div>
+            
+            <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-md">
+                 <div className="border-b border-gray-200 dark:border-gray-700">
+                    <nav className="flex flex-wrap -mb-px px-4 sm:px-6">
+                        <TabButton active={activeTab === 'Activity'} onClick={() => setActiveTab('Activity')}><ChatBubbleBottomCenterTextIcon className="w-5 h-5"/><span>Activity</span></TabButton>
+                        <TabButton active={activeTab === 'Transactions'} onClick={() => setActiveTab('Transactions')}><DocumentReportIcon className="w-5 h-5"/><span>Transactions</span></TabButton>
+                        <TabButton active={activeTab === 'Disputes'} onClick={() => setActiveTab('Disputes')}><ShieldExclamationIcon className="w-5 h-5"/><span>Disputes</span></TabButton>
+                        <TabButton active={activeTab === 'Reviews'} onClick={() => setActiveTab('Reviews')}><StarIcon className="w-5 h-5"/><span>Reviews</span></TabButton>
+                        <TabButton active={activeTab === 'Followers'} onClick={() => setActiveTab('Followers')}><UsersIcon className="w-5 h-5"/><span>Followers</span></TabButton>
+                        <TabButton active={activeTab === 'Following'} onClick={() => setActiveTab('Following')}><UsersIcon className="w-5 h-5"/><span>Following</span></TabButton>
+                        <TabButton active={activeTab === 'Activity Log'} onClick={() => setActiveTab('Activity Log')}><ClockIcon className="w-5 h-5"/><span>Activity Log</span></TabButton>
+                        <TabButton active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')}><Cog8ToothIcon className="w-5 h-5"/><span>Settings</span></TabButton>
+                    </nav>
+                </div>
+                <div className="p-4 sm:p-6">
+                    {renderContent()}
                 </div>
             </div>
 
-            <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="flex flex-wrap -mb-px">
-                    <TabButton active={activeTab === 'Activity'} onClick={() => setActiveTab('Activity')}>
-                        <ChatBubbleBottomCenterTextIcon className="w-5 h-5 mr-2" /> Activity
-                    </TabButton>
-                     <TabButton active={activeTab === 'Reviews'} onClick={() => setActiveTab('Reviews')}>
-                        <StarIcon className="w-5 h-5 mr-2" /> Reviews
-                    </TabButton>
-                    <TabButton active={activeTab === 'Transactions'} onClick={() => setActiveTab('Transactions')}>
-                        <CurrencyDollarIcon className="w-5 h-5 mr-2" /> Transactions
-                    </TabButton>
-                    <TabButton active={activeTab === 'Disputes'} onClick={() => setActiveTab('Disputes')}>
-                         <ShieldExclamationIcon className="w-5 h-5 mr-2" /> Disputes
-                    </TabButton>
-                    <TabButton active={activeTab === 'Followers'} onClick={() => setActiveTab('Followers')}>
-                         <UsersIcon className="w-5 h-5 mr-2" /> Followers
-                    </TabButton>
-                    <TabButton active={activeTab === 'Following'} onClick={() => setActiveTab('Following')}>
-                         <UsersIcon className="w-5 h-5 mr-2" /> Following
-                    </TabButton>
-                    <TabButton active={activeTab === 'Activity Log'} onClick={() => setActiveTab('Activity Log')}>
-                         <ClockIcon className="w-5 h-5 mr-2" /> Activity Log
-                    </TabButton>
-                    <TabButton active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')}>
-                         <Cog8ToothIcon className="w-5 h-5 mr-2" /> Settings
-                    </TabButton>
-                </nav>
-            </div>
-            
-            <div className="mt-6">
-                {renderContent()}
-            </div>
-            {isAvatarModalOpen && <UpdateAvatarModal onClose={() => setIsAvatarModalOpen(false)} onSave={handleUpdateAvatar} />}
         </div>
     );
 };

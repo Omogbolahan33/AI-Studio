@@ -9,7 +9,7 @@ interface TransactionDetailModalProps {
   posts: Post[];
   onClose: () => void;
   onViewProfile: (user: User) => void;
-  onRaiseDispute: (transactionId: string) => void;
+  onRaiseDispute: (transaction: Transaction) => void;
   onMarkAsShipped: (transactionId: string, trackingNumber: string, proofOfShipment: File) => void;
   onAcceptItem: (transactionId: string) => void;
   onAdminUpdateTransaction: (transactionId: string, updates: Partial<Transaction>) => void;
@@ -196,7 +196,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
             <p className="text-sm text-text-secondary dark:text-dark-text-secondary">The buyer's payment is secured. Ship the item and provide the tracking number and proof of shipment below.</p>
             <div>
                 <label className="text-xs font-medium" htmlFor="tracking">Tracking Number</label>
-                <input type="text" id="tracking" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required />
+                <input type="text" id="tracking" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface dark:text-dark-text-primary rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" required />
             </div>
              <div>
                 <label className="text-xs font-medium" htmlFor="proof">Proof of Shipment (Receipt, Package Photo, etc.)</label>
@@ -218,14 +218,14 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
         return (
             <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center space-y-3">
                 <p className="text-text-secondary dark:text-dark-text-secondary">Waiting for the seller to ship your item.</p>
-                <button onClick={() => onRaiseDispute(transaction.id)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
+                <button onClick={() => onRaiseDispute(transaction)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
             </div>
         );
       case 'Shipped':
         return (
             <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center space-y-3">
                 <p className="text-text-secondary dark:text-dark-text-secondary">Your item is on its way!</p>
-                <button onClick={() => onRaiseDispute(transaction.id)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
+                <button onClick={() => onRaiseDispute(transaction)} className="px-3 py-1.5 text-sm bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
             </div>
         );
       case 'Delivered':
@@ -236,7 +236,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
             {transaction.inspectionPeriodEnds && <CountdownTimer expiryDate={transaction.inspectionPeriodEnds} />}
             <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-3">
               <button onClick={() => onAcceptItem(transaction.id)} className="px-4 py-2 bg-secondary text-white font-semibold rounded-lg hover:opacity-90 transition-colors">Accept & Release Funds</button>
-              <button onClick={() => onRaiseDispute(transaction.id)} className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
+              <button onClick={() => onRaiseDispute(transaction)} className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Raise a Dispute</button>
             </div>
           </div>
         );
@@ -284,7 +284,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                     value={partialRefundAmount}
                     onChange={(e) => setPartialRefundAmount(e.target.value)}
                     placeholder={`Max ${transaction.amount.toLocaleString()}`}
-                    className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                    className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface dark:text-dark-text-primary rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                     max={transaction.amount}
                     min="0.01"
                     step="0.01"

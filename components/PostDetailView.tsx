@@ -1,7 +1,8 @@
 
 
-import React, { useMemo } from 'react';
-import type { Post, User } from '../types';
+
+import React, { useMemo, useState, useRef } from 'react';
+import type { Post, User, Comment } from '../types';
 import { HandThumbUpIcon, HandThumbDownIcon, UserCircleIcon, PencilIcon, TrashIcon, ArrowUpTrayIcon, PinIcon, FlagIcon, ShieldCheckIcon, LockClosedIcon, LockOpenIcon } from '../types';
 import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
@@ -59,6 +60,9 @@ interface PostDetailViewProps {
 }
 
 export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUser, users, onBack, onInitiatePurchase, onStartChat, onEditPost, onDeletePost, onLike, onDislike, onAddComment, onEditComment, onDeleteComment, onViewProfile, onTogglePinPost, onFlagPost, onFlagComment, onResolvePostFlag, onResolveCommentFlag, isSold, onTogglePostCommentRestriction, onLikeComment, onDislikeComment }) => {
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const mainCommentFormRef = useRef<HTMLDivElement>(null);
+
   const isAuthor = currentUser.name === post.author;
   const author = users.find(u => u.name === post.author);
   const hasLiked = post.likedBy.includes(currentUser.id);
@@ -101,6 +105,11 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
   };
   
   const isCommentingDisabled = post.isCommentingRestricted && currentUser.role === 'Member';
+
+  const handleStartReply = (comment: Comment) => {
+    setReplyingTo(comment);
+    mainCommentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   
   return (
     <div>
@@ -251,6 +260,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
                             onAddComment={onAddComment}
                             onEditComment={onEditComment}
                             onDeleteComment={onDeleteComment}
+                            onStartReply={handleStartReply}
                             onFlagComment={onFlagComment}
                             onResolveCommentFlag={onResolveCommentFlag}
                             onLikeComment={onLikeComment}
@@ -258,7 +268,7 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
                         />
                     ))}
 
-                    <div className="pt-6 border-t dark:border-gray-700">
+                    <div ref={mainCommentFormRef} className="pt-6 border-t dark:border-gray-700">
                         <h4 className="font-semibold text-text-primary dark:text-dark-text-primary mb-3">Leave a Reply</h4>
                         {isCommentingDisabled ? (
                             <div className="p-4 bg-gray-100 dark:bg-gray-700 text-center rounded-lg text-sm text-text-secondary dark:text-dark-text-secondary">
@@ -268,7 +278,12 @@ export const PostDetailView: React.FC<PostDetailViewProps> = ({ post, currentUse
                             <CommentForm 
                                 currentUser={currentUser} 
                                 users={users}
-                                onSubmit={(commentData) => onAddComment(post.id, commentData, null)} 
+                                onSubmit={(commentData) => {
+                                    onAddComment(post.id, commentData, replyingTo ? replyingTo.id : null)
+                                    setReplyingTo(null);
+                                }}
+                                replyingTo={replyingTo ? { author: replyingTo.author, content: replyingTo.content } : null}
+                                onCancelReply={() => setReplyingTo(null)}
                             />
                         )}
                     </div>

@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { EyeIcon, EyeSlashIcon, LockClosedIcon, AtSymbolIcon, CommunityIcon, GoogleIcon, FacebookIcon } from '../types';
 
 interface LoginPageProps {
-    onLogin: (username: string, password: string) => void;
+    onLogin: (identifier: string, password: string) => void;
     error: string;
-    onSwitchMode: (mode: 'signup') => void;
+    onSwitchMode: (mode: 'signup' | 'forgotPassword') => void;
     onSsoLogin: (provider: 'google' | 'facebook') => void;
 }
 
@@ -20,15 +21,15 @@ const SocialButton: React.FC<{ icon: React.ReactNode, label: string, onClick?: (
 );
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error, onSwitchMode, onSsoLogin }) => {
-    const [username, setUsername] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
     useEffect(() => {
-        const savedUsername = localStorage.getItem('rememberedUsername');
-        if (savedUsername) {
-            setUsername(savedUsername);
+        const savedIdentifier = localStorage.getItem('rememberedIdentifier');
+        if (savedIdentifier) {
+            setIdentifier(savedIdentifier);
             setRememberMe(true);
         }
     }, []);
@@ -36,11 +37,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error, onSwitchMo
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (rememberMe) {
-            localStorage.setItem('rememberedUsername', username);
+            localStorage.setItem('rememberedIdentifier', identifier);
         } else {
-            localStorage.removeItem('rememberedUsername');
+            localStorage.removeItem('rememberedIdentifier');
         }
-        onLogin(username, password);
+        onLogin(identifier, password);
     };
 
     return (
@@ -78,22 +79,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error, onSwitchMo
                     <form className="space-y-5" onSubmit={handleSubmit}>
                         <div>
                             <label
-                                htmlFor="username"
+                                htmlFor="identifier"
                                 className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary sr-only"
                             >
-                                Username
+                                Username or Email
                             </label>
                              <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <AtSymbolIcon className="w-5 h-5 text-gray-400" />
                                 </div>
                                 <input
-                                    id="username"
-                                    name="username"
+                                    id="identifier"
+                                    name="identifier"
                                     type="text"
                                     required
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
                                     className="w-full pl-10 pr-3 py-2.5 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     placeholder="Username or Email"
                                 />
@@ -144,6 +145,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error, onSwitchMo
                                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-dark-text-secondary">
                                     Remember me
                                 </label>
+                            </div>
+                            <div className="text-sm">
+                                <button type="button" onClick={() => onSwitchMode('forgotPassword')} className="font-medium text-primary hover:underline">
+                                    Forgot password?
+                                </button>
                             </div>
                         </div>
 

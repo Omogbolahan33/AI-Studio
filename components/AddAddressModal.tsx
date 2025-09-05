@@ -30,15 +30,15 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({ onClose, onSav
           <div className="p-6 space-y-4">
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">Street Address</label>
-              <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
             <div>
               <label htmlFor="city" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">City</label>
-              <input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
             <div>
               <label htmlFor="zipCode" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">ZIP / Postal Code</label>
-              <input type="text" id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface" />
+              <input type="text" id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary" />
             </div>
           </div>
           <div className="p-6 border-t bg-gray-50 dark:bg-gray-900 flex justify-end space-x-3">

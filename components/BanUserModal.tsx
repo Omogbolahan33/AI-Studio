@@ -38,15 +38,15 @@ export const BanUserModal: React.FC<BanUserModalProps> = ({ user, onClose, onCon
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-surface rounded-lg shadow-xl w-full max-w-md">
+      <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md">
         <div className="p-6 border-b">
-          <h2 className="text-xl font-bold text-text-primary">Ban User: {user.name}</h2>
-          <p className="text-sm text-text-secondary mt-1">Temporarily restrict this user from creating new posts.</p>
+          <h2 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">Ban User: {user.name}</h2>
+          <p className="text-sm text-text-secondary dark:text-dark-text-secondary mt-1">Temporarily restrict this user from creating new posts.</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
             <div>
-              <label htmlFor="ban-days" className="block text-sm font-medium text-text-secondary">
+              <label htmlFor="ban-days" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
                 Duration of Ban (in days)
               </label>
               <input
@@ -54,34 +54,34 @@ export const BanUserModal: React.FC<BanUserModalProps> = ({ user, onClose, onCon
                 type="number"
                 value={days}
                 onChange={(e) => setDays(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary"
                 min="1"
                 required
               />
             </div>
             <div>
-              <label htmlFor="ban-reason" className="block text-sm font-medium text-text-secondary">
+              <label htmlFor="ban-reason" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
                 Reason for Ban
               </label>
               <select 
                 id="ban-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-surface dark:bg-dark-surface rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:text-dark-text-primary"
               >
                   {PRESET_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             {reason === 'Other (please specify)' && (
                 <div>
-                    <label htmlFor="custom-reason" className="block text-sm font-medium text-text-secondary">
+                    <label htmlFor="custom-reason" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary">
                         Please specify the reason
                     </label>
                     <textarea
                         id="custom-reason"
                         value={customReason}
                         onChange={(e) => setCustomReason(e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-surface dark:bg-dark-surface dark:text-dark-text-primary"
                         rows={3}
                         required
                     />

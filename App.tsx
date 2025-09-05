@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -32,6 +28,10 @@ import { AddBankAccountModal } from './components/AddBankAccountModal';
 import { AddAddressModal } from './components/AddAddressModal';
 import { MaintenancePage } from './components/MaintenancePage';
 import { MaintenanceBanner } from './components/MaintenanceBanner';
+import { EmailVerificationModal } from './components/EmailVerificationModal';
+import { VerificationBanner } from './components/VerificationBanner';
+import { PasswordResetPage } from './components/PasswordResetPage';
+import { RaiseDisputeModal } from './components/RaiseDisputeModal';
 import { ChartBarIcon, DocumentReportIcon, ShieldExclamationIcon, ClockIcon, FlagIcon } from './types';
 import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount, DisputeMessage, FileAttachment } from './types';
 import { mockTransactions, mockDisputes, mockPosts, mockChats, mockUsers, mockCategories, mockNotifications, mockActivityLog, mockStickers } from './constants';
@@ -111,11 +111,22 @@ const AttentionRequiredPanel: React.FC<{
     );
 };
 
+const findParentCommentAuthor = (comments: Comment[], parentId: string): string | null => {
+    for (const c of comments) {
+        if (c.id === parentId) return c.author;
+        if (c.replies) {
+            const author = findParentCommentAuthor(c.replies, parentId);
+            if (author) return author;
+        }
+    }
+    return null;
+}
+
 // Fix: Export the App component to be used in index.tsx
 export const App: React.FC = () => {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [loginError, setLoginError] = useState('');
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgotPassword'>('login');
   
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [disputes, setDisputes] = useState<Dispute[]>(mockDisputes);
@@ -149,7 +160,8 @@ export const App: React.FC = () => {
   const [isAddBankAccountModalOpen, setIsAddBankAccountModalOpen] = useState(false);
   const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [raiseDisputeState, setRaiseDisputeState] = useState<Transaction | null>(null);
 
   const chatInModal = useMemo(() => chats.find(c => c.id === chatIdInModal), [chats, chatIdInModal]);
 
@@ -276,8 +288,8 @@ export const App: React.FC = () => {
     }
   }, [loggedInUser]);
 
-  const handleLogin = (username: string, password: string):void => {
-    const user = users.find(u => u.username === username && u.password === password);
+  const handleLogin = (identifier: string, password: string):void => {
+    const user = users.find(u => (u.username.toLowerCase() === identifier.toLowerCase() || u.email.toLowerCase() === identifier.toLowerCase()) && u.password === password);
     if (user) {
         if (!user.isActive) {
             setLoginError('Your account has been deactivated. Please contact support.');
@@ -285,9 +297,9 @@ export const App: React.FC = () => {
         }
         setLoggedInUser(user);
         setLoginError('');
-        setToast({ message: `Welcome ${user.name}!`, type: 'success' });
+        setToast({ message: `Welcome back, ${user.name}!`, type: 'success' });
     } else {
-        setLoginError('Invalid username or password.');
+        setLoginError('Invalid credentials.');
     }
   };
   
@@ -309,14 +321,18 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSignUp = (username: string, password: string): { success: boolean, message: string } => {
+  const handleSignUp = (username: string, email: string, password: string): { success: boolean, message: string } => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
         return { success: false, message: 'Username is already taken.' };
+    }
+    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        return { success: false, message: 'Email address is already in use.' };
     }
     const newUser: User = {
         id: `user-${Date.now()}`,
         username,
         password, // In a real app, this would be hashed
+        email,
         role: 'Member',
         name: username, // Default name to username
         isActive: true,
@@ -329,14 +345,75 @@ export const App: React.FC = () => {
     };
     setUsers(prev => [...prev, newUser]);
     setLoggedInUser(newUser);
-    setToast({ message: `Welcome ${newUser.name}!`, type: 'success' });
+    setIsVerificationModalOpen(true);
     return { success: true, message: 'Account created successfully!' };
   };
 
   const handleSignOut = () => {
       setLoggedInUser(null);
+      
+      // Fix: Reset all state to prevent data leakage between sessions
+      setTransactions(mockTransactions);
+      setDisputes(mockDisputes);
+      setPosts(mockPosts);
+      setUsers(mockUsers);
+      setNotifications(mockNotifications);
+      setActivityLog(mockActivityLog);
+      setChats(mockChats);
+      
+      setLoginError('');
+      setAuthMode('login');
+      setSelectedDispute(null);
+      setSelectedTransaction(null);
+      setSelectedPostId(null);
+      setActiveView('Dashboard');
+      setActiveChatId(null);
+      setIsMobileSidebarOpen(false);
+      setViewingProfileOfUser(null);
+      setUserToBan(null);
+      setToast(null);
+      setConfirmation(null);
+      setReviewModalState(null);
+      setPolicyModal(null);
+      setChatIdInModal(null);
+      setInitialTxMgmtTab('transactions');
+      setActiveCall(null);
+      setCallSelectionForUser(null);
+      setForwardMessageState({ message: mockChats[0].messages[0], isOpen: false });
+      setPendingAction(null);
+      setIsAddBankAccountModalOpen(false);
+      setIsAddAddressModalOpen(false);
   };
   
+  const handleVerifyEmail = (otp: string): { success: boolean, message: string } => {
+    if (otp === '123456') {
+        if(loggedInUser) {
+            const updatedUser = { ...loggedInUser, isVerified: true };
+            setLoggedInUser(updatedUser);
+            setUsers(users.map(u => u.id === loggedInUser.id ? updatedUser : u));
+            setIsVerificationModalOpen(false);
+            setToast({ message: 'Email verified successfully! Welcome!', type: 'success' });
+            return { success: true, message: 'Success' };
+        }
+    }
+    return { success: false, message: 'Invalid code. Please try again.' };
+  };
+
+  const handleSkipVerification = () => {
+    setIsVerificationModalOpen(false);
+    setToast({ message: `Welcome, ${loggedInUser?.name}! Remember to verify your email.`, type: 'success'});
+  };
+  
+  const handleFindUserByEmail = (email: string): User | undefined => {
+    return users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  };
+  
+  const handleUpdatePassword = (email: string, newPassword: string) => {
+    setUsers(prev => prev.map(u => u.email.toLowerCase() === email.toLowerCase() ? { ...u, password: newPassword } : u));
+    setToast({ message: 'Password has been reset successfully. Please sign in.', type: 'success' });
+    setAuthMode('login');
+  };
+
   const createActivityLogEntry = (action: string, details: string) => {
     if (!loggedInUser) return;
     const newLog: ActivityLog = {
@@ -390,6 +467,77 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleConfirmRaiseDispute = async (transactionId: string, reason: string, file?: File) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction || !loggedInUser) return;
+    
+    let attachment: FileAttachment | undefined;
+
+    if (file) {
+        try {
+            const dataUrl = await fileToDataUrl(file);
+            attachment = {
+                name: file.name,
+                url: dataUrl,
+                type: getFileType(file),
+            };
+        } catch (error) {
+            console.error("Error processing file attachment:", error);
+            setToast({ message: "Could not send the file.", type: 'error' });
+            return;
+        }
+    }
+
+    // 1. Update transaction status
+    setTransactions(prev => prev.map(t => 
+        t.id === transactionId ? { ...t, status: 'Disputed' } : t
+    ));
+
+    // 2. Create new dispute
+    const newDispute: Dispute = {
+        id: `DISP${Math.floor(Math.random() * 900) + 100}`,
+        transactionId,
+        buyer: transaction.buyer,
+        seller: transaction.seller,
+        reason,
+        status: 'Open',
+        openedDate: new Date().toISOString(),
+        chatHistory: [
+            {
+                sender: loggedInUser.name,
+                message: `Dispute opened. Reason: ${reason}`,
+                timestamp: new Date().toISOString(),
+                attachment,
+            }
+        ],
+    };
+    setDisputes(prev => [newDispute, ...prev]);
+
+    // 3. Send notification to seller
+    const seller = users.find(u => u.name === transaction.seller);
+    if (seller) {
+        const notification: Notification = {
+            id: `notif-dispute-${Date.now()}`,
+            userId: seller.id,
+            type: 'system',
+            content: `${transaction.buyer} has opened a dispute for the transaction involving "${transaction.item}".`,
+            link: '#', // Should link to dispute page later
+            timestamp: new Date().toISOString(),
+            read: false,
+            transactionId: transaction.id,
+            disputeId: newDispute.id,
+        };
+        setNotifications(prev => [notification, ...prev]);
+    }
+
+    // 4. Close modals
+    setRaiseDisputeState(null);
+    setSelectedTransaction(null); // Also close the detail view
+
+    // 5. Show toast
+    setToast({ message: 'Dispute has been successfully raised.', type: 'success' });
+};
+
   const handleCreateTransaction = (post: Post) => {
     if (!loggedInUser || loggedInUser.role !== 'Member') return;
 
@@ -438,6 +586,7 @@ export const App: React.FC = () => {
         successNotifications.push({
           id: `notif-${successTime}-s`,
           userId: seller.id,
+          actorId: loggedInUser.id,
           type: 'system',
           content: `${loggedInUser.name} purchased "${post.title}". Payment is secured, you can now ship the item.`,
           link: '#',
@@ -636,6 +785,7 @@ export const App: React.FC = () => {
              const newNotification: Notification = {
                 id: `notif-chat-${Date.now()}`,
                 userId: otherParty.id,
+                actorId: loggedInUser.id,
                 type: 'system',
                 content: `You have a new message from ${loggedInUser.name}.`,
                 link: '#',
@@ -899,23 +1049,13 @@ export const App: React.FC = () => {
             }
 
             // Notifications
+            const parentAuthorName = parentId ? findParentCommentAuthor(post.comments, parentId) : null;
             const mentionedUsernames = (commentData.content.match(/@(\w+)/g) || []).map(u => u.substring(1));
-            const participants = new Set<string>([post.author]);
-            if(parentId) {
-                const findParentAuthor = (comments: Comment[]): string | null => {
-                    for (const c of comments) {
-                        if (c.id === parentId) return c.author;
-                        if (c.replies) {
-                            const author = findParentAuthor(c.replies);
-                            if (author) return author;
-                        }
-                    }
-                    return null;
-                }
-                const parentAuthor = findParentAuthor(post.comments);
-                if(parentAuthor) participants.add(parentAuthor);
-            }
             
+            const participants = new Set<string>([post.author]);
+            if (parentAuthorName) {
+                participants.add(parentAuthorName);
+            }
             mentionedUsernames.forEach(username => {
                 const user = users.find(u => u.username === username);
                 if (user) participants.add(user.name);
@@ -925,17 +1065,34 @@ export const App: React.FC = () => {
                 if (participantName !== loggedInUser.name) {
                     const userToNotify = users.find(u => u.name === participantName);
                     if (userToNotify) {
-                         const notif: Notification = {
+                        const isMention = mentionedUsernames.some(u => u === userToNotify.username);
+                        const isReplyToThisUser = parentAuthorName && userToNotify.name === parentAuthorName;
+                        
+                        let notifType: Notification['type'] = 'comment';
+                        let notifContent = '';
+
+                        if (isMention) {
+                            notifType = 'mention';
+                            notifContent = `${loggedInUser.name} mentioned you in a comment on "${post.title}"`;
+                        } else if (isReplyToThisUser) {
+                            notifType = 'comment';
+                            notifContent = `${loggedInUser.name} replied to your comment on "${post.title}"`;
+                        } else { // Is post author
+                            notifType = 'comment';
+                            notifContent = `${loggedInUser.name} commented on your post: "${post.title}"`;
+                        }
+
+                        const notif: Notification = {
                             id: `notif-${Date.now()}-${userToNotify.id}`,
                             userId: userToNotify.id,
                             actorId: loggedInUser.id,
-                            type: mentionedUsernames.some(u => u === userToNotify.username) ? 'mention' : 'comment',
-                            content: mentionedUsernames.some(u => u === userToNotify.username) 
-                                ? `${loggedInUser.name} mentioned you in a comment on "${post.title}"`
-                                : `${loggedInUser.name} replied to a discussion on "${post.title}"`,
-                            link: '#', postId: post.id,
-                            timestamp: new Date().toISOString(), read: false,
-                         };
+                            type: notifType,
+                            content: notifContent,
+                            link: '#',
+                            postId: post.id,
+                            timestamp: new Date().toISOString(),
+                            read: false,
+                        };
                          setNotifications(prev => [notif, ...prev]);
                     }
                 }
@@ -1350,7 +1507,6 @@ export const App: React.FC = () => {
       }
       return post;
     }));
-// Fix: Added missing 'type' property to the toast object.
     setToast({ message: wasPinned ? "Post unpinned." : "Post pinned for 24 hours.", type: 'success' });
   };
 
@@ -1381,20 +1537,31 @@ export const App: React.FC = () => {
     }
 };
 
-  // Fix: Added the missing return statement with the main JSX for the application.
+    const currentUserNotifications = useMemo(() => {
+        if (!loggedInUser) return [];
+        return notifications.filter(n => n.userId === loggedInUser.id);
+    }, [notifications, loggedInUser]);
+
+    const currentUserChats = useMemo(() => {
+        if (!loggedInUser) return [];
+        return chats.filter(c => c.buyer === loggedInUser.name || c.seller === loggedInUser.name);
+    }, [chats, loggedInUser]);
+
   // RENDER LOGIC
   if (isMaintenanceMode && loggedInUser?.role !== 'Admin' && loggedInUser?.role !== 'Super Admin') {
-    // A signed-out user would be caught by !loggedInUser, but an already signed-in member
-    // needs to see this page and be able to sign out.
     return <MaintenancePage user={loggedInUser || { name: 'Guest' } as User} onSignOut={handleSignOut} />;
   }
 
   if (!loggedInUser) {
-    return authMode === 'login' ? (
-      <LoginPage onLogin={handleLogin} error={loginError} onSwitchMode={() => setAuthMode('signup')} onSsoLogin={handleSsoLogin} />
-    ) : (
-      <SignUpPage onSignUp={handleSignUp} onSwitchMode={() => setAuthMode('login')} onSsoLogin={handleSsoLogin} />
-    );
+    switch (authMode) {
+      case 'signup':
+        return <SignUpPage onSignUp={handleSignUp} onSwitchMode={() => setAuthMode('login')} onSsoLogin={handleSsoLogin} />;
+      case 'forgotPassword':
+        return <PasswordResetPage onFindUserByEmail={handleFindUserByEmail} onUpdatePassword={handleUpdatePassword} onBackToLogin={() => setAuthMode('login')} />;
+      case 'login':
+      default:
+        return <LoginPage onLogin={handleLogin} error={loginError} onSwitchMode={(mode) => setAuthMode(mode)} onSsoLogin={handleSsoLogin} />;
+    }
   }
   
   const isBanned = loggedInUser.banExpiresAt && new Date(loggedInUser.banExpiresAt) > new Date();
@@ -1479,7 +1646,7 @@ export const App: React.FC = () => {
         />;
       case 'My Chats':
         return <ChatPage 
-          chats={chats}
+          chats={currentUserChats}
           activeChatId={activeChatId}
           onSelectChat={setActiveChatId}
           onSendMessage={handleSendMessage}
@@ -1535,8 +1702,16 @@ export const App: React.FC = () => {
     <div className={`flex h-screen bg-background dark:bg-dark-background text-text-primary dark:text-dark-text-primary font-sans antialiased ${theme === 'dark' ? 'dark' : ''}`}>
       {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       {confirmation && <ConfirmationModal isOpen={!!confirmation} onClose={() => setConfirmation(null)} {...confirmation} />}
+      {isVerificationModalOpen && loggedInUser && (
+        <EmailVerificationModal 
+            email={loggedInUser.email}
+            onClose={() => setIsVerificationModalOpen(false)}
+            onVerify={handleVerifyEmail}
+            onSkip={handleSkipVerification}
+        />
+      )}
       {selectedDispute && <DisputeModal dispute={selectedDispute} transaction={transactions.find(t => t.id === selectedDispute.transactionId)} currentUser={loggedInUser} users={users} onClose={() => setSelectedDispute(null)} onResolve={handleResolveDispute} onSendMessage={() => {}} />}
-      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={()=>{}} onMarkAsShipped={()=>{}} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={() => {}} />}
+      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={(transaction) => setRaiseDisputeState(transaction)} onMarkAsShipped={()=>{}} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={() => {}} />}
       {userToBan && <BanUserModal user={userToBan} onClose={() => setUserToBan(null)} onConfirm={handleConfirmBan} />}
       {reviewModalState && <ReviewModal userToReview={users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer))!} onClose={() => setReviewModalState(null)} onSubmit={(rating, comment) => { const userToReview = users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer)); if(userToReview) handleAddReview(userToReview.id, rating, comment, reviewModalState.transaction.id); setReviewModalState(null); }} />}
       {policyModal && <PolicyModal title={policyModal.title} content={policyModal.content} onClose={() => setPolicyModal(null)} />}
@@ -1546,6 +1721,7 @@ export const App: React.FC = () => {
       {forwardMessageState.isOpen && <ForwardMessageModal messageToForward={forwardMessageState.message} userChats={chats} currentUser={loggedInUser} users={users} onClose={() => setForwardMessageState({ ...forwardMessageState, isOpen: false })} onConfirm={(targetChatIds) => { handleForwardMessage(forwardMessageState.message, targetChatIds); setForwardMessageState({ ...forwardMessageState, isOpen: false }); }} />}
       {isAddBankAccountModalOpen && <AddBankAccountModal onClose={() => setIsAddBankAccountModalOpen(false)} onSave={(account) => { handleUpdateSettings(loggedInUser.id, { bankAccount: account }); setIsAddBankAccountModalOpen(false); if(pendingAction) { pendingAction(); setPendingAction(null); } }} />}
       {isAddAddressModalOpen && <AddAddressModal onClose={() => setIsAddAddressModalOpen(false)} onSave={(address) => { handleUpdateSettings(loggedInUser.id, address); setIsAddAddressModalOpen(false); if(pendingAction) { pendingAction(); setPendingAction(null); } }} />}
+      {raiseDisputeState && <RaiseDisputeModal transaction={raiseDisputeState} onClose={() => setRaiseDisputeState(null)} onSubmit={handleConfirmRaiseDispute} />}
 
       {viewingProfileOfUser && <UserProfilePage 
         user={viewingProfileOfUser} 
@@ -1610,6 +1786,7 @@ export const App: React.FC = () => {
                 />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 bg-gray-100 dark:bg-dark-background">
                     {isBanned && <BanNotificationBanner user={loggedInUser}/>}
+                    {!loggedInUser.isVerified && <VerificationBanner onStartVerification={() => setIsVerificationModalOpen(true)} />}
                     {renderView()}
                 </main>
             </div>
@@ -1623,8 +1800,8 @@ export const App: React.FC = () => {
                 userName={loggedInUser.name}
                 onSignOut={handleSignOut}
                 onNavigate={setActiveView}
-                notifications={notifications}
-                messages={chats}
+                notifications={currentUserNotifications}
+                messages={currentUserChats}
                 onNotificationClick={(item) => {
                     if ('type' in item) { // Notification
                         if (item.postId) { setActiveView('Forum'); setSelectedPostId(item.postId); }
@@ -1647,6 +1824,7 @@ export const App: React.FC = () => {
             />
              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 bg-gray-100 dark:bg-dark-background">
                 {isBanned && <BanNotificationBanner user={loggedInUser}/>}
+                {!loggedInUser.isVerified && <VerificationBanner onStartVerification={() => setIsVerificationModalOpen(true)} />}
                 {renderView()}
             </main>
         </div>

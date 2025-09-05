@@ -1,8 +1,7 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Comment, User } from '../types';
-import { UserCircleIcon, TrashIcon, PencilIcon, FlagIcon, ShieldCheckIcon, HandThumbUpIcon, HandThumbDownIcon } from '../types';
+import { UserCircleIcon, TrashIcon, PencilIcon, FlagIcon, ShieldCheckIcon, HandThumbUpIcon, HandThumbDownIcon, UnverifiedBadge } from '../types';
 import { CommentForm } from './CommentForm';
 import { VerificationBadge } from './VerificationBadge';
 
@@ -16,6 +15,7 @@ interface CommentItemProps {
   onAddComment: (postId: string, commentData: { content: string; mediaUrl?: string; mediaType?: 'image' | 'video'; }, parentId: string | null) => void;
   onEditComment: (postId: string, commentId: string, newContent: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
+  onStartReply: (comment: Comment) => void;
   onFlagComment: (postId: string, commentId: string) => void;
   onResolveCommentFlag: (postId: string, commentId: string) => void;
   onLikeComment: (postId: string, commentId: string) => void;
@@ -47,10 +47,9 @@ const timeAgo = (isoDate: string): string => {
     return "Just now";
 };
 
-export const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, users, currentUser, onViewProfile, onAddComment, onEditComment, onDeleteComment, onFlagComment, onResolveCommentFlag, onLikeComment, onDislikeComment }) => {
+export const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, users, currentUser, onViewProfile, onAddComment, onEditComment, onDeleteComment, onStartReply, onFlagComment, onResolveCommentFlag, onLikeComment, onDislikeComment }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isReplying, setIsReplying] = useState(false);
-
+  
   const author = useMemo(() => users.find(u => u.name === comment.author), [users, comment.author]);
   const isAuthor = currentUser.id === author?.id;
   const isAdmin = currentUser.role === 'Admin' || currentUser.role === 'Super Admin';
@@ -75,23 +74,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, users
 }, [comment.content, users]);
 
 
-  if (isEditing) {
-    return (
-        <div className="p-4 bg-primary-light dark:bg-gray-600 rounded-lg">
-            <CommentForm
-                currentUser={currentUser}
-                users={users}
-                onSubmit={handleEditSubmit}
-                initialContent={comment.content}
-                isEditMode={true}
-            />
-             <div className="flex justify-end space-x-2 mt-2">
-                <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-            </div>
-        </div>
-    );
-  }
-  
   return (
     <div className="flex items-start space-x-4">
       <div className="flex-shrink-0">
@@ -104,108 +86,110 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, users
         </button>
       </div>
       <div className="flex-1">
-        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg rounded-tl-none relative group">
-          <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                  <button onClick={() => author && onViewProfile(author)} className="font-bold text-text-primary dark:text-dark-text-primary text-sm hover:underline">{comment.author}</button>
-                  {author?.isVerified && <VerificationBadge />}
-                   {comment.flaggedBy.length > 0 && (
-                      <span title={`Flagged by ${comment.flaggedBy.length} user(s)`}>
-                          <FlagIcon className="w-4 h-4 text-red-500"/>
-                      </span>
+        {isEditing ? (
+          <div>
+            <CommentForm
+                currentUser={currentUser}
+                users={users}
+                onSubmit={handleEditSubmit}
+                initialContent={comment.content}
+                isEditMode={true}
+            />
+             <div className="flex justify-end space-x-2 mt-2">
+                <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg rounded-tl-none relative group">
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                      <button onClick={() => author && onViewProfile(author)} className="font-bold text-text-primary dark:text-dark-text-primary text-sm hover:underline">{comment.author}</button>
+                      {author?.isVerified ? <VerificationBadge /> : <UnverifiedBadge />}
+                       {comment.flaggedBy.length > 0 && (
+                          <span title={`Flagged by ${comment.flaggedBy.length} user(s)`}>
+                              <FlagIcon className="w-4 h-4 text-red-500"/>
+                          </span>
+                      )}
+                  </div>
+                <p className="text-xs text-text-secondary dark:text-dark-text-secondary">
+                  {timeAgo(comment.timestamp)}
+                  {comment.editedTimestamp && <span className="italic"> • Edited</span>}
+                </p>
+              </div>
+              
+              {comment.mediaUrl && (
+                <div className="mt-2 rounded-md overflow-hidden bg-gray-200">
+                  {comment.mediaType === 'image' ? (
+                    <img src={comment.mediaUrl} alt="Comment media" className="w-auto h-auto max-h-64 object-contain" />
+                  ) : (
+                    <video src={comment.mediaUrl} controls className="w-auto h-auto max-h-64 object-contain" />
+                  )}
+                </div>
+              )}
+              
+              <div 
+                className="prose prose-sm dark:prose-invert max-w-none text-text-primary dark:text-dark-text-primary mt-2" 
+                dangerouslySetInnerHTML={{ __html: highlightedContent }} 
+              />
+              
+              <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isAdmin && comment.flaggedBy.length > 0 && (
+                       <button
+                          onClick={() => onResolveCommentFlag(postId, comment.id)}
+                          title="Dismiss flag"
+                          className="p-1 text-gray-400 hover:text-green-500 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                      >
+                          <ShieldCheckIcon className="w-4 h-4" />
+                      </button>
+                  )}
+                  {!isAuthor && (
+                       <button
+                          onClick={() => onFlagComment(postId, comment.id)}
+                          disabled={hasFlagged}
+                          title={hasFlagged ? "You have already flagged this comment" : "Flag comment"}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                          <FlagIcon className={`w-4 h-4 ${hasFlagged ? 'text-red-500' : ''}`} />
+                      </button>
+                  )}
+                  {isAuthor && (
+                      <button
+                          onClick={() => setIsEditing(true)}
+                          title="Edit comment"
+                          className="p-1 text-gray-400 hover:text-primary rounded-full hover:bg-primary-light transition-colors"
+                      >
+                          <PencilIcon className="w-4 h-4" />
+                      </button>
+                  )}
+                  {(isAuthor || isAdmin) && (
+                      <button
+                          onClick={() => onDeleteComment(postId, comment.id)}
+                          title="Delete comment"
+                          className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-100 transition-colors"
+                      >
+                          <TrashIcon className="w-4 h-4" />
+                      </button>
                   )}
               </div>
-            <p className="text-xs text-text-secondary dark:text-dark-text-secondary">
-              {timeAgo(comment.timestamp)}
-              {comment.editedTimestamp && <span className="italic"> • Edited</span>}
-            </p>
-          </div>
-          
-          {comment.mediaUrl && (
-            <div className="mt-2 rounded-md overflow-hidden bg-gray-200">
-              {comment.mediaType === 'image' ? (
-                <img src={comment.mediaUrl} alt="Comment media" className="w-auto h-auto max-h-64 object-contain" />
-              ) : (
-                <video src={comment.mediaUrl} controls className="w-auto h-auto max-h-64 object-contain" />
-              )}
             </div>
-          )}
-          
-          <div 
-            className="prose prose-sm dark:prose-invert max-w-none text-text-primary dark:text-dark-text-primary mt-2" 
-            dangerouslySetInnerHTML={{ __html: highlightedContent }} 
-          />
-          
-          <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isAdmin && comment.flaggedBy.length > 0 && (
-                   <button
-                      onClick={() => onResolveCommentFlag(postId, comment.id)}
-                      title="Dismiss flag"
-                      className="p-1 text-gray-400 hover:text-green-500 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                  >
-                      <ShieldCheckIcon className="w-4 h-4" />
-                  </button>
-              )}
-              {!isAuthor && (
-                   <button
-                      onClick={() => onFlagComment(postId, comment.id)}
-                      disabled={hasFlagged}
-                      title={hasFlagged ? "You have already flagged this comment" : "Flag comment"}
-                      className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                      <FlagIcon className={`w-4 h-4 ${hasFlagged ? 'text-red-500' : ''}`} />
-                  </button>
-              )}
-              {isAuthor && (
-                  <button
-                      onClick={() => setIsEditing(true)}
-                      title="Edit comment"
-                      className="p-1 text-gray-400 hover:text-primary rounded-full hover:bg-primary-light transition-colors"
-                  >
-                      <PencilIcon className="w-4 h-4" />
-                  </button>
-              )}
-              {(isAuthor || isAdmin) && (
-                  <button
-                      onClick={() => onDeleteComment(postId, comment.id)}
-                      title="Delete comment"
-                      className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-100 transition-colors"
-                  >
-                      <TrashIcon className="w-4 h-4" />
-                  </button>
-              )}
-          </div>
-        </div>
 
-        <div className="mt-2 text-sm flex items-center space-x-4">
-            <button onClick={() => setIsReplying(p => !p)} className="font-semibold text-text-secondary hover:text-primary transition-colors">{isReplying ? 'Cancel' : 'Reply'}</button>
-             <div className="flex items-center space-x-1 text-text-secondary">
-                <button onClick={() => onLikeComment(postId, comment.id)} disabled={isAuthor} className={`p-1 rounded-full hover:bg-gray-200 disabled:opacity-50 ${hasLiked ? 'text-primary' : ''}`}>
-                    <HandThumbUpIcon className="w-4 h-4" />
-                </button>
-                <span className="text-xs font-semibold">{comment.likedBy.length}</span>
+            <div className="mt-2 text-sm flex items-center space-x-4">
+                <button onClick={() => onStartReply(comment)} className="font-semibold text-text-secondary hover:text-primary transition-colors">Reply</button>
+                 <div className="flex items-center space-x-1 text-text-secondary">
+                    <button onClick={() => onLikeComment(postId, comment.id)} disabled={isAuthor} className={`p-1 rounded-full hover:bg-gray-200 disabled:opacity-50 ${hasLiked ? 'text-primary' : ''}`}>
+                        <HandThumbUpIcon className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-semibold">{comment.likedBy.length}</span>
+                </div>
+                 <div className="flex items-center space-x-1 text-text-secondary">
+                    <button onClick={() => onDislikeComment(postId, comment.id)} disabled={isAuthor} className={`p-1 rounded-full hover:bg-gray-200 disabled:opacity-50 ${hasDisliked ? 'text-red-500' : ''}`}>
+                        <HandThumbDownIcon className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-semibold">{comment.dislikedBy.length}</span>
+                </div>
             </div>
-             <div className="flex items-center space-x-1 text-text-secondary">
-                <button onClick={() => onDislikeComment(postId, comment.id)} disabled={isAuthor} className={`p-1 rounded-full hover:bg-gray-200 disabled:opacity-50 ${hasDisliked ? 'text-red-500' : ''}`}>
-                    <HandThumbDownIcon className="w-4 h-4" />
-                </button>
-                <span className="text-xs font-semibold">{comment.dislikedBy.length}</span>
-            </div>
-        </div>
-        
-        {isReplying && (
-            <div className="mt-4">
-                <CommentForm
-                    currentUser={currentUser}
-                    users={users}
-                    onSubmit={(commentData) => {
-                        onAddComment(postId, commentData, comment.id);
-                        setIsReplying(false);
-                    }}
-                    onCancel={() => setIsReplying(false)}
-                    placeholderText={`Replying to ${comment.author}...`}
-                />
-            </div>
+          </>
         )}
 
         {comment.replies && comment.replies.length > 0 && (
@@ -223,6 +207,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, users
                             onAddComment={onAddComment}
                             onEditComment={onEditComment}
                             onDeleteComment={onDeleteComment}
+                            onStartReply={onStartReply}
                             onFlagComment={onFlagComment}
                             onResolveCommentFlag={onResolveCommentFlag}
                             onLikeComment={onLikeComment}

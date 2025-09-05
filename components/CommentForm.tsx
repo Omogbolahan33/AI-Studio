@@ -1,9 +1,12 @@
 
 
 
+
+
+
 import React, { useState, useRef, useEffect } from 'react';
-import type { User } from '../types';
-import { PaperClipIcon, FaceSmileIcon, PaintBrushIcon, BoldIcon, ItalicIcon, Bars3BottomLeftIcon, UserCircleIcon } from '../types';
+import type { User, Message } from '../types';
+import { PaperClipIcon, FaceSmileIcon, PaintBrushIcon, BoldIcon, ItalicIcon, Bars3BottomLeftIcon, UserCircleIcon, XMarkIcon } from '../types';
 
 interface CommentFormProps {
   currentUser: User;
@@ -13,6 +16,8 @@ interface CommentFormProps {
   isEditMode?: boolean;
   onCancel?: () => void;
   placeholderText?: string;
+  replyingTo?: { author: string; content: string } | null;
+  onCancelReply?: () => void;
 }
 
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '❤️', '🔥', '🎉', '👋', '🙏'];
@@ -23,7 +28,7 @@ const ToolbarButton: React.FC<{ onClick: (e: React.MouseEvent) => void; title: s
     </button>
 );
 
-export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, users, onSubmit, initialContent = '', isEditMode = false, onCancel, placeholderText = "What are your thoughts?" }) => {
+export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, users, onSubmit, initialContent = '', isEditMode = false, onCancel, placeholderText = "What are your thoughts?", replyingTo, onCancelReply }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -195,12 +200,23 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, users, on
                 )}
             </div>
         )}
-        <div className="border border-gray-300 rounded-lg">
+         {replyingTo && (
+            <div className="px-3 py-2 text-sm bg-gray-100 dark:bg-gray-600 rounded-t-lg flex justify-between items-center border border-b-0 border-gray-300 dark:border-gray-500">
+                <div>
+                    <p className="font-semibold text-text-secondary dark:text-dark-text-secondary">Replying to {replyingTo.author}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyingTo.content.replace(/<[^>]+>/g, '').substring(0, 50)}...</p>
+                </div>
+                <button type="button" onClick={onCancelReply} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-500">
+                    <XMarkIcon className="w-4 h-4" />
+                </button>
+            </div>
+        )}
+        <div className={`border border-gray-300 dark:border-gray-600 ${replyingTo ? 'rounded-b-lg' : 'rounded-lg'}`}>
           <div 
             ref={editorRef}
             contentEditable
             onInput={handleInput}
-            className="w-full p-3 min-h-[100px] text-text-primary focus:outline-none"
+            className="w-full p-3 min-h-[100px] text-text-primary dark:text-dark-text-primary focus:outline-none"
             data-placeholder={placeholderText}
           />
           {mediaPreviewUrl && (
@@ -224,7 +240,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({ currentUser, users, on
               </div>
             </div>
           )}
-          <div className="border-t border-gray-200 p-2 flex justify-between items-center relative">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-2 flex justify-between items-center relative">
             <div className="flex items-center space-x-1">
                 <ToolbarButton onClick={() => handleFormat('bold')} title="Bold"><BoldIcon className="w-5 h-5" /></ToolbarButton>
                 <ToolbarButton onClick={() => handleFormat('italic')} title="Italic"><ItalicIcon className="w-5 h-5" /></ToolbarButton>
