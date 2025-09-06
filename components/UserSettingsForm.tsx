@@ -1,11 +1,14 @@
 
 
+
+
 import React, { useState } from 'react';
 import type { User } from '../types';
 
 interface UserSettingsFormProps {
   currentUser: User;
   onUpdateSettings: (userId: string, settingsData: Partial<User>) => void;
+  onDeactivateAccount: () => void;
 }
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -24,7 +27,7 @@ const FormRow: React.FC<{ label: string; id: string; children: React.ReactNode }
     </div>
 );
 
-export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser, onUpdateSettings }) => {
+export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser, onUpdateSettings, onDeactivateAccount }) => {
     const [formData, setFormData] = useState({
         username: currentUser.username || '',
         email: currentUser.email || '',
@@ -113,11 +116,33 @@ export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser,
                     )}
                 </FormSection>
 
-                <div className="pt-6 flex justify-end">
-                    <button type="submit" className="px-6 py-2 bg-primary text-white font-semibold rounded-lg shadow-sm hover:bg-primary-hover transition-colors">
-                        Save Changes
-                    </button>
+                <div className="pt-6">
+                    <div className="flex justify-end">
+                        <button type="submit" className="px-6 py-2 bg-primary text-white font-semibold rounded-lg shadow-sm hover:bg-primary-hover transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
                 </div>
+
+                <FormSection title="Danger Zone">
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-red-800 dark:text-red-200">Deactivate Account</h4>
+                                <p className="text-sm text-red-700 dark:text-red-300 mt-1 max-w-lg">
+                                    Once you deactivate your account, there is no going back. Please be certain.
+                                </p>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={onDeactivateAccount}
+                                className="mt-3 md:mt-0 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-sm hover:bg-red-700 transition-colors flex-shrink-0"
+                            >
+                                Deactivate Account
+                            </button>
+                        </div>
+                    </div>
+                </FormSection>
             </form>
         </div>
     );

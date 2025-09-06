@@ -1,5 +1,5 @@
 import React from 'react';
-import { HomeIcon, DocumentReportIcon, UsersIcon, CogIcon, ShieldExclamationIcon, ChatBubbleLeftRightIcon, XMarkIcon } from '../types';
+import { HomeIcon, DocumentReportIcon, UsersIcon, CogIcon, ShieldExclamationIcon, ChatBubbleLeftRightIcon, XMarkIcon, ChartPieIcon } from '../types';
 import type { View, UserRole } from '../types';
 
 interface NavLinkProps {
@@ -41,6 +41,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, role, 
   const adminLinks = (
     <>
       <NavLink icon={<HomeIcon className="w-6 h-6" />} label="Dashboard" active={activeView === 'Dashboard'} onClick={() => handleLinkClick('Dashboard')} />
+      {role === 'Super Admin' && (
+        <NavLink icon={<ChartPieIcon className="w-6 h-6" />} label="Analytics" active={activeView === 'Analytics'} onClick={() => handleLinkClick('Analytics')} />
+      )}
       <NavLink icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Forum" active={activeView === 'Forum'} onClick={() => handleLinkClick('Forum')} />
       <NavLink icon={<DocumentReportIcon className="w-6 h-6" />} label="Transaction Management" active={activeView === 'Transaction Management'} onClick={() => handleLinkClick('Transaction Management')} />
       <NavLink icon={<CogIcon className="w-6 h-6" />} label="Settings" active={activeView === 'Settings'} onClick={() => handleLinkClick('Settings')} />

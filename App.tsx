@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -32,6 +34,7 @@ import { EmailVerificationModal } from './components/EmailVerificationModal';
 import { VerificationBanner } from './components/VerificationBanner';
 import { PasswordResetPage } from './components/PasswordResetPage';
 import { RaiseDisputeModal } from './components/RaiseDisputeModal';
+import { AnalyticsPage } from './components/AnalyticsPage';
 import { ChartBarIcon, DocumentReportIcon, ShieldExclamationIcon, ClockIcon, FlagIcon } from './types';
 import type { Dispute, Post, Chat, User, Category, Comment, Transaction, Notification, ActivityLog, PostCondition, Review, View, AdminAction, UserRole, Message, BankAccount, DisputeMessage, FileAttachment } from './types';
 import { mockTransactions, mockDisputes, mockPosts, mockChats, mockUsers, mockCategories, mockNotifications, mockActivityLog, mockStickers } from './constants';
@@ -147,7 +150,7 @@ export const App: React.FC = () => {
   const [userToBan, setUserToBan] = useState<User | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [confirmation, setConfirmation] = useState<{ title: string; message: string; onConfirm: () => void; confirmText?: string; variant?: 'danger' | 'primary'; } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ title: string; message: string; onConfirm: () => void; confirmText?: string; variant?: 'danger' | 'primary'; validationText?: string; validationPrompt?: string; } | null>(null);
   const [reviewModalState, setReviewModalState] = useState<{ transaction: Transaction } | null>(null);
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
   const [chatIdInModal, setChatIdInModal] = useState<string | null>(null);
@@ -1391,6 +1394,32 @@ export const App: React.FC = () => {
     setToast({ message: `User account has been ${users.find(u => u.id === userId)?.isActive ? 'deactivated' : 'activated'}.`, type: 'success' });
   };
   
+  const handleDeactivateAccount = () => {
+    if (!loggedInUser) return;
+    setUsers(prevUsers => prevUsers.map(u => 
+        u.id === loggedInUser.id ? { ...u, isActive: false } : u
+    ));
+    setConfirmation(null);
+    setToast({ message: "Your account has been successfully deactivated.", type: 'success' });
+    setTimeout(() => {
+        setLoggedInUser(null);
+        setActiveView('Dashboard');
+    }, 1500);
+};
+
+  const handleRequestDeactivation = () => {
+    if (!loggedInUser) return;
+    setConfirmation({
+        title: "Deactivate Account",
+        message: "This action cannot be undone. All your posts, comments, and transaction history will be disassociated. You will be logged out immediately.",
+        onConfirm: handleDeactivateAccount,
+        confirmText: "Deactivate",
+        variant: 'danger',
+        validationText: loggedInUser.username,
+        validationPrompt: `To confirm, please type your username: "${loggedInUser.username}"`
+    });
+};
+  
   const handleBanUser = (userToBan: User) => {
     setUserToBan(userToBan);
   };
@@ -1609,6 +1638,17 @@ export const App: React.FC = () => {
              />
           </div>
         );
+      case 'Analytics':
+        if (loggedInUser.role === 'Super Admin') {
+          return <AnalyticsPage 
+            users={users} 
+            posts={posts} 
+            transactions={transactions} 
+            disputes={disputes}
+            onViewProfile={handleViewProfile} 
+          />;
+        }
+        return <div>Access Denied</div>;
       case 'Transaction Management':
         return <TransactionManagementPage transactions={transactions} disputes={disputes} onSelectTransaction={setSelectedTransaction} onDisputeSelect={setSelectedDispute} initialTab={initialTxMgmtTab} />;
       case 'Settings':
@@ -1673,6 +1713,7 @@ export const App: React.FC = () => {
           onDisputeSelect={setSelectedDispute}
           onSelectTransaction={setSelectedTransaction}
           onUpdateSettings={handleUpdateSettings}
+          onDeactivateAccount={handleRequestDeactivation}
           onLike={handleLikePost}
           onDislike={handleDislikePost}
           onViewProfile={handleViewProfile}

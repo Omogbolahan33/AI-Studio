@@ -23,6 +23,7 @@ interface MyProfilePageProps {
   onDisputeSelect: (dispute: Dispute) => void;
   onSelectTransaction: (transaction: Transaction) => void;
   onUpdateSettings: (userId: string, settingsData: Partial<User>) => void;
+  onDeactivateAccount: () => void;
   onLike?: (postId: string) => void;
   onDislike?: (postId: string) => void;
   onViewProfile?: (user: User) => void;
@@ -80,6 +81,7 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onDisputeSelect,
     onSelectTransaction,
     onUpdateSettings,
+    onDeactivateAccount,
     onLike = () => {},
     onDislike = () => {},
     onViewProfile = () => {},
@@ -278,7 +280,7 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                     </div>
                 ) : <p className="text-center text-text-secondary py-8">No activity to show.</p>;
             case 'Settings':
-                return <UserSettingsForm currentUser={currentUser} onUpdateSettings={onUpdateSettings} />;
+                return <UserSettingsForm currentUser={currentUser} onUpdateSettings={onUpdateSettings} onDeactivateAccount={onDeactivateAccount} />;
             default:
                 return null;
         }
