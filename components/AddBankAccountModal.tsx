@@ -1,13 +1,16 @@
+
+
 import React, { useState } from 'react';
 import type { BankAccount } from '../types';
 
 interface AddBankAccountModalProps {
   onClose: () => void;
   onSave: (account: BankAccount) => void;
+  existingAccount?: BankAccount | null;
 }
 
-export const AddBankAccountModal: React.FC<AddBankAccountModalProps> = ({ onClose, onSave }) => {
-  const [account, setAccount] = useState<BankAccount>({ accountName: '', accountNumber: '', bankName: '' });
+export const AddBankAccountModal: React.FC<AddBankAccountModalProps> = ({ onClose, onSave, existingAccount }) => {
+  const [account, setAccount] = useState<BankAccount>(existingAccount || { accountName: '', accountNumber: '', bankName: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAccount({ ...account, [e.target.name]: e.target.value });
@@ -26,8 +29,8 @@ export const AddBankAccountModal: React.FC<AddBankAccountModalProps> = ({ onClos
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex justify-center items-center p-4">
       <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md">
         <div className="p-6 border-b">
-          <h2 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">Add Payout Account</h2>
-          <p className="text-sm text-text-secondary dark:text-dark-text-secondary mt-1">This is required to sell items. Your details are saved securely.</p>
+          <h2 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">{existingAccount ? 'Update Payout Account' : 'Add Payout Account'}</h2>
+          <p className="text-sm text-text-secondary dark:text-dark-text-secondary mt-1">{existingAccount ? 'Update your bank details for receiving payments.' : 'This is required to sell items. Your details are saved securely.'}</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">

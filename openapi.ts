@@ -355,6 +355,28 @@ export const openApiSpec: any = {
             responses: { '200': { description: 'Updated user data', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } } }
         }
     },
+    '/users/me/bank-account': {
+        put: {
+            tags: ['User'],
+            summary: 'Update User Bank Account',
+            description: "Adds or updates the current user's bank account for payouts.",
+            requestBody: {
+                required: true,
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/BankAccount' }
+                    }
+                }
+            },
+            responses: {
+                '200': {
+                    description: 'Bank account updated successfully',
+                    content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } }
+                },
+                '400': { description: 'Invalid bank account details provided' }
+            }
+        }
+    },
     '/users/{userId}': {
         get: {
             tags: ['User'],
@@ -405,6 +427,22 @@ export const openApiSpec: any = {
             responses: { '204': { description: 'Post deleted' } }
         }
     },
+     '/posts/{postId}/toggle-sold': {
+        post: {
+            tags: ['Posts'],
+            summary: 'Toggle Post Sold Status',
+            description: "Toggles the 'isSold' status of an advertisement post. Authorization: User must be the author of the post.",
+            parameters: [{ name: 'postId', in: 'path', required: true, schema: { type: 'string' } }],
+            responses: { 
+              '200': { 
+                description: 'Post updated', 
+                content: { 'application/json': { schema: { $ref: '#/components/schemas/Post' } } } 
+              },
+              '403': { description: 'User is not the author of the post' },
+              '404': { description: 'Post not found' }
+            }
+        }
+    },
     '/posts/{postId}/like': {
         post: {
             tags: ['Posts'],
@@ -435,11 +473,14 @@ export const openApiSpec: any = {
         post: {
             tags: ['Transactions'],
             summary: 'Create a transaction from a post',
-            description: "Initiates a purchase. Business logic: Backend simulates payment processing and sends notifications to buyer/seller on success or failure.",
+            description: "Initiates a purchase. Business logic: Backend must validate that the buyer has a shipping address. Backend simulates payment processing and sends notifications to buyer/seller on success or failure.",
             requestBody: {
                 content: { 'application/json': { schema: { type: 'object', properties: { postId: { type: 'string' } } } } }
             },
-            responses: { '201': { description: 'Transaction created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Transaction' } } } } }
+            responses: { 
+                '201': { description: 'Transaction created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Transaction' } } } },
+                '400': { description: 'Bad Request (e.g., user has no shipping address, post not for sale)' }
+            }
         }
     },
     '/transactions/{transactionId}': {

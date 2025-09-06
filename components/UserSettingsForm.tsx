@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState } from 'react';
 import type { User } from '../types';
 
@@ -9,6 +7,7 @@ interface UserSettingsFormProps {
   currentUser: User;
   onUpdateSettings: (userId: string, settingsData: Partial<User>) => void;
   onDeactivateAccount: () => void;
+  onOpenBankAccountModal: () => void;
 }
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -27,7 +26,7 @@ const FormRow: React.FC<{ label: string; id: string; children: React.ReactNode }
     </div>
 );
 
-export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser, onUpdateSettings, onDeactivateAccount }) => {
+export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser, onUpdateSettings, onDeactivateAccount, onOpenBankAccountModal }) => {
     const [formData, setFormData] = useState({
         username: currentUser.username || '',
         email: currentUser.email || '',
@@ -110,9 +109,27 @@ export const UserSettingsForm: React.FC<UserSettingsFormProps> = ({ currentUser,
                                     {'*'.repeat(currentUser.bankAccount.accountNumber.length - 4) + currentUser.bankAccount.accountNumber.slice(-4)}
                                 </p>
                             </FormRow>
+                            <div className="flex justify-end pt-2">
+                                <button 
+                                    type="button" 
+                                    onClick={onOpenBankAccountModal}
+                                    className="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-gray-600 text-text-primary dark:text-dark-text-primary hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                                >
+                                    Update Account
+                                </button>
+                            </div>
                         </>
                     ) : (
-                        <p className="text-sm text-text-secondary dark:text-dark-text-secondary">No payout account has been set up. You will be prompted to add one when you create your first advertisement.</p>
+                        <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                            <p className="text-sm text-text-secondary dark:text-dark-text-secondary">No payout account has been set up.</p>
+                            <button 
+                                type="button" 
+                                onClick={onOpenBankAccountModal}
+                                className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
+                            >
+                                Add Account
+                            </button>
+                        </div>
                     )}
                 </FormSection>
 

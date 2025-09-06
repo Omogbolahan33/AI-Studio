@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { User, Post, Transaction, Dispute, Comment, ActivityLog, Review } from '../types';
 import { UserCircleIcon, Cog8ToothIcon, DocumentReportIcon, ShieldExclamationIcon, ChatBubbleBottomCenterTextIcon, ClockIcon, UsersIcon, PencilIcon, StarIcon, HandThumbUpIcon, CurrencyDollarIcon, MagnifyingGlassIcon, ArrowDownIcon, ArrowUpIcon } from '../types';
@@ -45,7 +44,6 @@ interface MyProfilePageProps {
   onLikeComment: (postId: string, commentId: string) => void;
   onDislikeComment: (postId: string, commentId: string) => void;
   onToggleSoldStatus: (postId: string) => void;
-  onOpenBankAccountModal: () => void;
 }
 
 type ProfileTab = 'Activity' | 'Transactions' | 'Disputes' | 'Followers' | 'Following' | 'Reviews' | 'Activity Log' | 'Settings';
@@ -103,8 +101,7 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
     onTogglePostCommentRestriction,
     onLikeComment,
     onDislikeComment,
-    onToggleSoldStatus,
-    onOpenBankAccountModal
+    onToggleSoldStatus
 }) => {
     const [activeTab, setActiveTab] = useState<ProfileTab>('Activity');
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -283,7 +280,7 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                     </div>
                 ) : <p className="text-center text-text-secondary py-8">No activity to show.</p>;
             case 'Settings':
-                return <UserSettingsForm currentUser={currentUser} onUpdateSettings={onUpdateSettings} onDeactivateAccount={onDeactivateAccount} onOpenBankAccountModal={onOpenBankAccountModal} />;
+                return <UserSettingsForm currentUser={currentUser} onUpdateSettings={onUpdateSettings} onDeactivateAccount={onDeactivateAccount} />;
             default:
                 return null;
         }
@@ -316,15 +313,6 @@ export const MyProfilePage: React.FC<MyProfilePageProps> = ({
                             )}
                         </div>
                         <p className="text-md text-text-secondary dark:text-dark-text-secondary">@{currentUser.username}</p>
-                    </div>
-                    <div className="mt-4 md:mt-0">
-                        <button 
-                            onClick={() => setActiveTab('Settings')}
-                            className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-text-primary dark:text-dark-text-primary font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                        >
-                            <Cog8ToothIcon className="w-5 h-5" />
-                            <span>Edit Profile</span>
-                        </button>
                     </div>
                 </div>
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -162,9 +160,11 @@ export const App: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [isAddBankAccountModalOpen, setIsAddBankAccountModalOpen] = useState(false);
   const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [raiseDisputeState, setRaiseDisputeState] = useState<Transaction | null>(null);
+
+  // Fix: Add isMaintenanceMode state.
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
   const chatInModal = useMemo(() => chats.find(c => c.id === chatIdInModal), [chats, chatIdInModal]);
 
@@ -278,8 +278,11 @@ export const App: React.FC = () => {
     if (view === 'Transaction Management') {
         setInitialTxMgmtTab('transactions');
     }
+    if (view === 'Forum') {
+        setSelectedPostId(null);
+    }
     setActiveView(view);
-};
+  };
 
   useEffect(() => {
     if (loggedInUser) {
@@ -386,6 +389,8 @@ export const App: React.FC = () => {
       setPendingAction(null);
       setIsAddBankAccountModalOpen(false);
       setIsAddAddressModalOpen(false);
+      setIsVerificationModalOpen(false);
+      setRaiseDisputeState(null);
   };
   
   const handleVerifyEmail = (otp: string): { success: boolean, message: string } => {
@@ -1733,6 +1738,7 @@ export const App: React.FC = () => {
           onLikeComment={handleLikeComment}
           onDislikeComment={handleDislikeComment}
           onToggleSoldStatus={handleToggleSoldStatus}
+          onOpenBankAccountModal={() => setIsAddBankAccountModalOpen(true)}
         />;
       default:
         return <div>Not implemented</div>
@@ -1752,15 +1758,15 @@ export const App: React.FC = () => {
         />
       )}
       {selectedDispute && <DisputeModal dispute={selectedDispute} transaction={transactions.find(t => t.id === selectedDispute.transactionId)} currentUser={loggedInUser} users={users} onClose={() => setSelectedDispute(null)} onResolve={handleResolveDispute} onSendMessage={() => {}} />}
-      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={handleViewProfile} onRaiseDispute={(transaction) => setRaiseDisputeState(transaction)} onMarkAsShipped={()=>{}} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={handleOpenReviewModal} onOpenTransactionChat={handleOpenTransactionChat} onReverseAdminAction={() => {}} />}
+      {selectedTransaction && <TransactionDetailModal transaction={selectedTransaction} currentUser={loggedInUser} users={users} posts={posts} onClose={() => setSelectedTransaction(null)} onViewProfile={(user) => { setSelectedTransaction(null); handleViewProfile(user); }} onRaiseDispute={(transaction) => { setSelectedTransaction(null); setRaiseDisputeState(transaction); }} onMarkAsShipped={()=>{}} onAcceptItem={handleAcceptItem} onAdminUpdateTransaction={()=>{}} onSelectPost={handleSelectPost} onOpenReviewModal={(transaction) => { setSelectedTransaction(null); handleOpenReviewModal(transaction); }} onOpenTransactionChat={(transaction) => { setSelectedTransaction(null); handleOpenTransactionChat(transaction); }} onReverseAdminAction={() => {}} />}
       {userToBan && <BanUserModal user={userToBan} onClose={() => setUserToBan(null)} onConfirm={handleConfirmBan} />}
       {reviewModalState && <ReviewModal userToReview={users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer))!} onClose={() => setReviewModalState(null)} onSubmit={(rating, comment) => { const userToReview = users.find(u => u.name === (loggedInUser.name === reviewModalState.transaction.buyer ? reviewModalState.transaction.seller : reviewModalState.transaction.buyer)); if(userToReview) handleAddReview(userToReview.id, rating, comment, reviewModalState.transaction.id); setReviewModalState(null); }} />}
       {policyModal && <PolicyModal title={policyModal.title} content={policyModal.content} onClose={() => setPolicyModal(null)} />}
-      {chatInModal && <ChatModal chat={chatInModal} currentUser={loggedInUser} users={users} posts={posts} onSendMessage={handleSendMessage} onClose={() => setChatIdInModal(null)} onViewProfile={handleViewProfile} onSelectPost={handleSelectPost} onInitiateCall={(user) => setCallSelectionForUser(user)} allStickers={mockStickers} onSaveSticker={handleSaveSticker} onForwardMessage={(message) => setForwardMessageState({ message, isOpen: true })} />}
+      {chatInModal && <ChatModal chat={chatInModal} currentUser={loggedInUser} users={users} posts={posts} onSendMessage={handleSendMessage} onClose={() => setChatIdInModal(null)} onViewProfile={(user) => { setChatIdInModal(null); handleViewProfile(user); }} onSelectPost={(post) => { setChatIdInModal(null); handleSelectPost(post); }} onInitiateCall={(user) => { setChatIdInModal(null); setCallSelectionForUser(user); }} allStickers={mockStickers} onSaveSticker={handleSaveSticker} onForwardMessage={(message) => setForwardMessageState({ message, isOpen: true })} />}
       {activeCall && <CallModal currentUser={loggedInUser} otherUser={activeCall.withUser} type={activeCall.type} onEndCall={() => setActiveCall(null)} />}
       {callSelectionForUser && <CallTypeSelectionModal userToCall={callSelectionForUser} onClose={() => setCallSelectionForUser(null)} onStartCall={(user, type) => { setActiveCall({ withUser: user, type }); setCallSelectionForUser(null); }} />}
       {forwardMessageState.isOpen && <ForwardMessageModal messageToForward={forwardMessageState.message} userChats={chats} currentUser={loggedInUser} users={users} onClose={() => setForwardMessageState({ ...forwardMessageState, isOpen: false })} onConfirm={(targetChatIds) => { handleForwardMessage(forwardMessageState.message, targetChatIds); setForwardMessageState({ ...forwardMessageState, isOpen: false }); }} />}
-      {isAddBankAccountModalOpen && <AddBankAccountModal onClose={() => setIsAddBankAccountModalOpen(false)} onSave={(account) => { handleUpdateSettings(loggedInUser.id, { bankAccount: account }); setIsAddBankAccountModalOpen(false); if(pendingAction) { pendingAction(); setPendingAction(null); } }} />}
+      {isAddBankAccountModalOpen && <AddBankAccountModal onClose={() => setIsAddBankAccountModalOpen(false)} onSave={(account) => { handleUpdateSettings(loggedInUser.id, { bankAccount: account }); setIsAddBankAccountModalOpen(false); if(pendingAction) { pendingAction(); setPendingAction(null); } }} existingAccount={loggedInUser.bankAccount}/>}
       {isAddAddressModalOpen && <AddAddressModal onClose={() => setIsAddAddressModalOpen(false)} onSave={(address) => { handleUpdateSettings(loggedInUser.id, address); setIsAddAddressModalOpen(false); if(pendingAction) { pendingAction(); setPendingAction(null); } }} />}
       {raiseDisputeState && <RaiseDisputeModal transaction={raiseDisputeState} onClose={() => setRaiseDisputeState(null)} onSubmit={handleConfirmRaiseDispute} />}
 
@@ -1813,7 +1819,15 @@ export const App: React.FC = () => {
                     onNavigate={handleNavigation}
                     notifications={notifications}
                     messages={chats}
-                    onNotificationClick={(item) => 'type' in item ? (item.postId && setSelectedPostId(item.postId)) : setActiveChatId(item.id)}
+                    onNotificationClick={(item) => {
+                      if ('type' in item) { // Is a Notification
+                        if (item.postId) {
+                          handleNavigation('Forum');
+                          setSelectedPostId(item.postId);
+                        }
+                      }
+                      // No action for chat items for admins
+                    }}
                     theme={theme}
                     onToggleTheme={handleToggleTheme}
                     currentUser={loggedInUser}
@@ -1840,15 +1854,15 @@ export const App: React.FC = () => {
                 onToggleMobileSidebar={() => {}}
                 userName={loggedInUser.name}
                 onSignOut={handleSignOut}
-                onNavigate={setActiveView}
+                onNavigate={handleNavigation}
                 notifications={currentUserNotifications}
                 messages={currentUserChats}
                 onNotificationClick={(item) => {
                     if ('type' in item) { // Notification
-                        if (item.postId) { setActiveView('Forum'); setSelectedPostId(item.postId); }
-                        if (item.chatId) { setActiveView('My Chats'); setActiveChatId(item.chatId); }
+                        if (item.postId) { handleNavigation('Forum'); setSelectedPostId(item.postId); }
+                        if (item.chatId) { handleNavigation('My Chats'); setActiveChatId(item.chatId); }
                     } else { // Chat
-                        setActiveView('My Chats');
+                        handleNavigation('My Chats');
                         setActiveChatId(item.id);
                     }
                 }}
